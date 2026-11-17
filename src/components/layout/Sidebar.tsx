@@ -27,8 +27,8 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { name: "Overview", href: "/", icon: LayoutDashboard, ready: true },
-  { name: "Address Validator", href: "/validator", icon: ShieldCheck, badge: "ZIP-316", ready: false },
-  { name: "Payment Request Builder", href: "/builder", icon: QrCode, badge: "ZIP-321", ready: false },
+  { name: "Address Validator", href: "/validator", icon: ShieldCheck, badge: "ZIP-316", ready: true },
+  { name: "Payment Request Builder", href: "/builder", icon: QrCode, badge: "ZIP-321", ready: true },
   { name: "Wallet Compatibility", href: "/wallets", icon: Wallet, ready: false },
   { name: "Payment Scenarios", href: "/scenarios", icon: FlaskConical, ready: false },
   { name: "Webhook Testing", href: "/webhooks", icon: Webhook, ready: false },
@@ -116,3 +116,4 @@ export function Sidebar() {
     </aside>
   );
 }
+
