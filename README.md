@@ -39,7 +39,7 @@ ZecForge provides a deterministic, interactive environment to test every stage o
 | **Receiving Address Validator** | ZIP-316, ZIP-32, Transparent | ✅ Implemented | Preliminary format check for Unified (`u1`/`utest1`), Sapling (`zs1`/`ztestsapling1`), and Transparent (`t1`/`tm`). Network mismatch detection. |
 | **Payment Request Builder** | ZIP-321 (Zucchini 0.5.2 Subset) | ✅ Implemented | Canonical URI generation, 8-decimal limit, unpadded base64url memo encoder, QR code rendering, transparent memo rejection. |
 | **Multi-Wallet Compatibility Sandbox** | Zucchini (SDK) & Zodl (QR / Deep Link) | ✅ Implemented | Browser wallet (Zucchini Dapp SDK) EIP-1193 discovery & dispatch, plus mobile air-gapped wallet (Zodl / Zashi) ZIP-321 QR generation, mobile deep-links, and 5-point manual audit recording. |
-| **Edge Case Scenario Simulator** | Fail-Closed Reconciliation | ⏳ In Roadmap | Deterministic state machine simulating `underpaid`, `overpaid`, `late_payment`, and `reorg_review`. |
+| **Edge Case Scenario Simulator** | Fail-Closed Reconciliation | ✅ Implemented | Deterministic 8-state offline reconciliation engine simulating exact integer zatoshis, `underpaid`, `overpaid`, `late_payment`, and `reorg_review` with structured audit logging. |
 | **HMAC Webhook Dispatcher** | HMAC-SHA256 Webhooks | ⏳ In Roadmap | Simulated event signing (`signReceiptWebhook`) and backend payload verification. |
 | **Integration Audit Report** | Merchant Compliance Export | ⏳ In Roadmap | Exportable markdown and JSON audit report for merchant readiness. |
 
@@ -72,6 +72,23 @@ ZecForge provides a deterministic, interactive environment to test every stage o
        ▼
 [Merchant Backend Listener] ── HMAC-SHA256 Webhook Verification ── Order Fulfilled
 ```
+
+---
+
+## Edge Case Scenario Simulator (`/scenarios`)
+
+Real-world e-commerce integrations inevitably face reconciliation anomalies. ZecForge implements a deterministic, offline 8-state finite state machine with strict precedence rules:
+
+- **States:** `awaiting_payment` → `detected` (0 confs) → `confirming` (1 to N-1 confs) → `paid` (≥ N confs).
+- **Exceptions (Fail-Closed):**
+  - `underpaid`: Received amount is strictly less than invoice requested amount. Order fulfillment is blocked (`canFulfill: false`). Accumulating confirmations will **never** silently transition an underpayment to `paid`.
+  - `overpaid`: Received amount exceeds invoice requested amount. Marked for manual merchant reconciliation / refund.
+  - `late_payment`: Payment detected or received after the merchant invoice expiration timestamp.
+  - `reorg_review`: A blockchain reorganization dropped confirmed depth below policy threshold or replaced the block.
+- **Configurable Confirmation Threshold:** Default 10 confirmations demonstrates a deep reorg-resistance policy (a merchant business policy, not a Zcash protocol rule).
+- **Exact Decimal / Integer Zatoshi Arithmetic:** All calculations use exact integer zatoshis (`BigInt` scaling: 1 ZEC = 100,000,000 zatoshis), eliminating floating-point rounding errors.
+- **Structured Audit Trail:** Every event logs previous state, new state, event type, timestamp, confirmation count, and transition reason.
+- **Simulation Boundary:** Purely offline simulation for developer testing. Does not connect to live nodes or produce real transactions.
 
 ---
 
