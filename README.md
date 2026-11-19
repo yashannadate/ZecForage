@@ -98,8 +98,8 @@ ZecForge provides a deterministic, interactive environment to test every stage o
 ### Installation
 
 ```bash
-git clone https://github.com/your-username/zecforge.git
-cd zecforge
+git clone https://github.com/yashannadate/ZecForage.git
+cd ZecForage
 npm install
 ```
 
