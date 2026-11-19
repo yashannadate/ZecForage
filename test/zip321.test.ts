@@ -146,3 +146,4 @@ describe("ZIP-321 Payment Request Builder & Parser (Zucchini 0.5.2 Subset)", () 
     expect(sdkParsed.memoBase64url).toBe(encodeMemoToBase64Url("SDK Test Verification"));
   });
 });
+

@@ -1,32 +1,56 @@
-# ZecPayKit
+# ZecForge
+### Build. Test. Verify. Shield.
 
-> **Shielded Zcash Merchant Payment Integration Testbench**  
-> Built for the **Zcash India Build on Zcash Bounty** (November 2026).  
-> MIT Licensed.
+An open-source developer workbench for building, testing, and validating shielded Zcash merchant payment integrations.  
+Built for the **Zcash India Build on Zcash Bounty** (November 2026).  
+MIT Licensed.
 
 ---
 
-## What is ZecPayKit?
+## What is ZecForge?
 
-**ZecPayKit is NOT another Zcash wallet or generic payment gateway.**
+**ZecForge is NOT another cryptocurrency wallet or a generic payment gateway.**
 
-Instead, it is an **integration testbench and developer tool** designed to help merchants, Web3 developers, and payment processors rigorously test, validate, and understand shielded Zcash checkout integrations before touching mainnet funds.
+Instead, it is an **integration workbench and developer tool** designed to help merchants, Web3 developers, and payment processors rigorously test, validate, and understand shielded Zcash checkout integrations before touching mainnet funds.
 
-Integrating shielded Zcash payments into merchant e-commerce requires solving specific cryptographic and consensus challenges:
-1. **The Settlement Boundary Rule:** A wallet broadcast (`txid`) does **not** equal confirmed merchant receipt. Note decryption must occur independently via an incoming viewing key scanner.
-2. **ZIP-321 Invariants:** Parsing and URI generation must adhere to strict decimal limits, memo encodings, and network address validation.
+Integrating shielded Zcash payments into e-commerce applications requires solving specific cryptographic and consensus challenges:
+1. **The Settlement Boundary Rule:** A wallet broadcast (`txid`) does **not** equal confirmed merchant receipt. Note decryption must occur independently via an incoming viewing key scanner on the merchant's backend.
+2. **ZIP-321 Invariants:** Parsing and URI generation must adhere to strict decimal limits (max 8 decimals), unpadded base64url memo encodings, and network address validation. Memos are strictly forbidden on transparent addresses.
 3. **Edge Case Reconciliation:** Real-world checkouts encounter underpayments, overpayments, late arrivals, missing invoice memos, and chain reorganizations.
 4. **Deterministic Webhook Verification:** Merchant backends must safely authenticate HMAC status updates without accepting replayed or forged events.
 
-ZecPayKit provides a deterministic, interactive environment to test every stage of this pipeline.
+ZecForge provides a deterministic, interactive environment to test every stage of this pipeline.
 
 ---
 
-## Core Engineering Rules
+## Intended Users
 
-- **Zero Key Ingestion:** ZecPayKit never collects, stores, or handles private spending keys or seed phrases.
+- **Web3 & Full-Stack Developers:** Building e-commerce checkout plugins, donation widgets, or custom merchant payment processors for Zcash.
+- **E-Commerce Merchants:** Testing wallet handoffs and understanding the confirmation lifecycle before accepting real ZEC.
+- **Payment Gateway Integrators:** Auditing ZIP-316/ZIP-321 compliance and testing edge-case payment scenarios (underpayments, reorgs).
+
+---
+
+## Implementation Status
+
+| Module | Standard / Protocol | Status | Description |
+|---|---|:---:|---|
+| **Workbench Dashboard & Shell** | Fintech Design System | ✅ Implemented | Deep navy fintech theme, responsive sidebar, simulated testnet block counter, scanner status. |
+| **Receiving Address Validator** | ZIP-316, ZIP-32, Transparent | ✅ Implemented | Preliminary format check for Unified (`u1`/`utest1`), Sapling (`zs1`/`ztestsapling1`), and Transparent (`t1`/`tm`). Network mismatch detection. |
+| **Payment Request Builder** | ZIP-321 (Zucchini 0.5.2 Subset) | ✅ Implemented | Canonical URI generation, 8-decimal limit, unpadded base64url memo encoder, QR code rendering, transparent memo rejection. |
+| **Wallet Compatibility Sandbox** | `@zucchinifi/dapp-sdk` 0.2.0 | ⏳ In Roadmap | Zucchini provider discovery, permission negotiation, and ZIP-321 `requestPayment` dispatch. |
+| **Edge Case Scenario Simulator** | Fail-Closed Reconciliation | ⏳ In Roadmap | Deterministic state machine simulating `underpaid`, `overpaid`, `late_payment`, and `reorg_review`. |
+| **HMAC Webhook Dispatcher** | HMAC-SHA256 Webhooks | ⏳ In Roadmap | Simulated event signing (`signReceiptWebhook`) and backend payload verification. |
+| **Integration Audit Report** | Merchant Compliance Export | ⏳ In Roadmap | Exportable markdown and JSON audit report for merchant readiness. |
+
+---
+
+## Core Engineering & Security Invariants
+
+- **Zero Key Ingestion:** ZecForge never collects, stores, or handles private spending keys or seed phrases.
 - **Fail-Closed Verification:** No payment is marked confirmed based solely on browser wallet assertions or third-party block explorer APIs.
 - **Strict Network Boundary:** Designed and isolated for Zcash Testnet.
+- **Format Validation Tier:** Preliminary format checks verify prefix and charset rules. As required by protocol safety rules, ZecForge explicitly informs users that full cryptographic validity requires node/scanner verification.
 - **No Pseudo-Cryptography:** Uses standard, documented protocols (ZIP 316, ZIP 321) and the `@zucchinifi/dapp-sdk` 0.2.0 integration contracts.
 
 ---
@@ -51,6 +75,19 @@ ZecPayKit provides a deterministic, interactive environment to test every stage 
 
 ---
 
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **Language:** TypeScript 5 (Strict Mode, Target: ES2022)
+- **Styling:** Tailwind CSS (Deep navy `#080C14`, elevated surfaces `#0F1626` / `#151F36`, violet `#7C3AED`, emerald `#10B981`)
+- **Icons:** Lucide React (featuring `Anvil` wordmark icon)
+- **Validation:** Zod
+- **QR Generation:** `qrcode`
+- **Zcash Integration:** `@zucchinifi/dapp-sdk` 0.2.0
+- **Testing:** Vitest & Playwright
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -61,8 +98,8 @@ ZecPayKit provides a deterministic, interactive environment to test every stage 
 ### Installation
 
 ```bash
-git clone https://github.com/your-username/zecpaykit.git
-cd zecpaykit
+git clone https://github.com/your-username/zecforge.git
+cd zecforge
 npm install
 ```
 
@@ -74,6 +111,12 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Running Automated Tests
+
+```bash
+npm run test
+```
+
 ### Building for Production
 
 ```bash
@@ -83,19 +126,6 @@ npm run start
 
 ---
 
-## Tech Stack
-
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript 5 (Strict Mode)
-- **Styling:** Tailwind CSS (Deep navy fintech theme)
-- **Icons:** Lucide React
-- **Validation:** Zod
-- **Zcash Integration:** `@zucchinifi/dapp-sdk` 0.2.0
-- **Testing:** Vitest & Playwright
-
----
-
 ## License
 
-MIT © 2026 ZecPayKit Contributors
-
+MIT © 2026 ZecForge Contributors

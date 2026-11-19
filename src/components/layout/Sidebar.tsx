@@ -12,7 +12,7 @@ import {
   Webhook,
   FileCheck2,
   Settings2,
-  Terminal,
+  Anvil,
   ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,17 +43,19 @@ export function Sidebar() {
     <aside className="w-64 border-r border-surface-border bg-surface flex flex-col shrink-0 h-screen sticky top-0">
       {/* Brand Header */}
       <div className="h-16 flex items-center px-6 border-b border-surface-border gap-3">
-        <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-primary-900/30">
-          <Terminal className="w-4 h-4 text-white" />
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-600 to-primary-700 flex items-center justify-center text-white font-bold text-sm shadow-md shadow-primary-900/30 border border-primary-500/30">
+          <Anvil className="w-4 h-4 text-primary-200" />
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-100 tracking-tight text-sm">ZecPayKit</span>
+            <span className="font-bold text-slate-100 tracking-tight text-sm font-sans">
+              Zec<span className="text-primary-400">Forge</span>
+            </span>
             <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-primary-950 text-primary-300 border border-primary-800/60 font-semibold">
               v0.1.0
             </span>
           </div>
-          <p className="text-[11px] text-slate-400 font-medium">Zcash Integration Testbench</p>
+          <p className="text-[10px] text-slate-400 font-medium font-mono">Build · Test · Verify</p>
         </div>
       </div>
 

@@ -97,3 +97,4 @@ describe("Receiving Address Validator (ZIP-316 / ZIP-32 / Transparent)", () => {
     expect(res.errors[0]).toContain("Invalid Bech32m characters");
   });
 });
+

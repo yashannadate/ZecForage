@@ -3,8 +3,8 @@ import "./globals.css";
 import { AppShell } from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
-  title: "ZecPayKit — Shielded Zcash Payment Integration Testbench",
-  description: "Testbench and developer suite for testing shielded Zcash merchant checkout integrations, ZIP-321 invoices, address validation, and webhook reconciliations.",
+  title: "ZecForge — Developer Workbench for Shielded Zcash Payments",
+  description: "ZecForge: Build. Test. Verify. Shield. Open-source developer workbench for building, testing, and validating shielded Zcash merchant payment integrations.",
 };
 
 export default function RootLayout({

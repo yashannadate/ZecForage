@@ -25,15 +25,15 @@ export default function DashboardOverview() {
         <div className="relative z-10 max-w-3xl space-y-3">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-primary-950/80 border border-primary-800/60 text-primary-300 text-xs font-mono font-medium">
             <Shield className="w-3.5 h-3.5" />
-            Zcash India Build on Zcash Bounty
+            ZecForge · Build. Test. Verify. Shield.
           </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-100">
-            Zcash Shielded Merchant Integration Testbench
+            Zcash Shielded Merchant Integration Workbench
           </h1>
           <p className="text-sm md:text-base text-slate-400 leading-relaxed">
-            ZecPayKit provides merchants, Web3 developers, and payment gateways with a deterministic testing
-            environment to validate shielded Zcash checkout flows, audit ZIP-316/ZIP-321 compatibility, and test
-            webhook reconciliations before deploying to production.
+            ZecForge provides merchants, Web3 developers, and payment gateways with an open-source developer workbench
+            to build, test, and validate shielded Zcash checkout integrations, audit ZIP-316/ZIP-321 compatibility,
+            and verify webhook reconciliations before deploying to production.
           </p>
           <div className="pt-2 flex flex-wrap items-center gap-3 text-xs text-slate-300">
             <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-surface-elevated border border-surface-border">
@@ -58,7 +58,7 @@ export default function DashboardOverview() {
         <div className="space-y-1 text-xs">
           <h2 className="font-semibold text-slate-200">The Merchant Settlement Rule</h2>
           <p className="text-slate-400 leading-relaxed">
-            A wallet transaction submission (<code className="text-primary-300 font-mono">txid</code>) does <strong>not</strong> equal confirmed merchant receipt. ZecPayKit enforces a strict separation between customer wallet broadcast and backend scanner note decryption with canonical confirmation accumulation.
+            A wallet transaction submission (<code className="text-primary-300 font-mono">txid</code>) does <strong>not</strong> equal confirmed merchant receipt. ZecForge enforces a strict separation between customer wallet broadcast and backend scanner note decryption with canonical confirmation accumulation.
           </p>
         </div>
       </div>
