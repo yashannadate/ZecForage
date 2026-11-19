@@ -31,7 +31,7 @@ const navItems: NavItem[] = [
   { name: "Payment Request Builder", href: "/builder", icon: QrCode, badge: "ZIP-321", ready: true },
   { name: "Wallet Compatibility", href: "/wallets", icon: Wallet, badge: "Dapp SDK", ready: true },
   { name: "Payment Scenarios", href: "/scenarios", icon: FlaskConical, badge: "State Machine", ready: true },
-  { name: "Webhook Testing", href: "/webhooks", icon: Webhook, ready: false },
+  { name: "Webhook Testing", href: "/webhooks", icon: Webhook, badge: "HMAC-SHA256", ready: true },
   { name: "Integration Report", href: "/reports", icon: FileCheck2, ready: false },
   { name: "Merchant Config", href: "/settings", icon: Settings2, ready: false },
 ];

@@ -40,7 +40,7 @@ ZecForge provides a deterministic, interactive environment to test every stage o
 | **Payment Request Builder** | ZIP-321 (Zucchini 0.5.2 Subset) | ✅ Implemented | Canonical URI generation, 8-decimal limit, unpadded base64url memo encoder, QR code rendering, transparent memo rejection. |
 | **Multi-Wallet Compatibility Sandbox** | Zucchini (SDK) & Zodl (QR / Deep Link) | ✅ Implemented | Browser wallet (Zucchini Dapp SDK) EIP-1193 discovery & dispatch, plus mobile air-gapped wallet (Zodl / Zashi) ZIP-321 QR generation, mobile deep-links, and 5-point manual audit recording. |
 | **Edge Case Scenario Simulator** | Fail-Closed Reconciliation | ✅ Implemented | Deterministic 8-state offline reconciliation engine simulating exact integer zatoshis, `underpaid`, `overpaid`, `late_payment`, and `reorg_review` with structured audit logging. |
-| **HMAC Webhook Dispatcher** | HMAC-SHA256 Webhooks | ⏳ In Roadmap | Simulated event signing (`signReceiptWebhook`) and backend payload verification. |
+| **HMAC Webhook Dispatcher** | HMAC-SHA256 Webhooks | ✅ Implemented | Server-side signing, timestamp binding (`t={ts},v1={hex}`), 300s replay tolerance, constant-time `timingSafeEqual`, schema validation, deduplication store, and bounded retries. |
 | **Integration Audit Report** | Merchant Compliance Export | ⏳ In Roadmap | Exportable markdown and JSON audit report for merchant readiness. |
 
 ---
@@ -89,6 +89,32 @@ Real-world e-commerce integrations inevitably face reconciliation anomalies. Zec
 - **Exact Decimal / Integer Zatoshi Arithmetic:** All calculations use exact integer zatoshis (`BigInt` scaling: 1 ZEC = 100,000,000 zatoshis), eliminating floating-point rounding errors.
 - **Structured Audit Trail:** Every event logs previous state, new state, event type, timestamp, confirmation count, and transition reason.
 - **Simulation Boundary:** Purely offline simulation for developer testing. Does not connect to live nodes or produce real transactions.
+
+---
+
+## HMAC-SHA256 Webhook Dispatcher (`/webhooks`)
+
+Merchant e-commerce backends must safely receive asynchronous payment notifications without accepting forged, tampered, or replayed HTTP requests. ZecForge implements an enterprise-grade reference webhook architecture:
+
+### 1. Canonical Signature Format
+Webhooks sign the exact serialized raw request body bytes bound to the dispatch timestamp:
+- **Header:** `X-ZecForge-Signature: t={unix_timestamp},v1={hex_hmac_sha256}`
+- **Signed Message:** `${unix_timestamp}.${rawBody}`
+- **Constant-Time Verification:** Compares digest buffers using `crypto.timingSafeEqual` to eliminate timing side-channel leaks.
+
+### 2. Security Protections
+- **Replay Protection:** Timestamps are cryptographically bound into the signature digest. Receiver strictly rejects requests older than 300 seconds (5-minute tolerance window) or more than 5 seconds into the future.
+- **Payload Tampering Rejection:** Any alteration to amounts, invoice IDs, or flags (such as unauthorized `canFulfill: true` toggles) breaks the HMAC digest and results in immediate HTTP 401 rejection.
+- **Idempotency & Replay Deduplication:** Processes events against a storage abstraction (`IdempotencyStore`). Duplicate delivery of the same event ID is recognized and acknowledged with HTTP 200 without re-triggering order fulfillment.
+- **Secret Isolation:** The signing secret (`ZECFORGE_WEBHOOK_SECRET`) is loaded exclusively on the server (`.env.example`) and is never exposed to client bundles or browser responses.
+
+### 3. Controlled Delivery Simulator & Bounded Retries
+The `/webhooks` workbench features a multi-scenario delivery tester:
+- **Test Modes:** Valid delivery, tampered body payload, corrupted signature, expired timestamp, idempotency duplicate replay, and transient HTTP 500 error.
+- **Bounded Backoff:** Retries transient server errors (HTTP 5xx) with bounded exponential backoff (up to configured max retries, default 3). Client errors (HTTP 4xx) fail-fast without wasteful retries.
+
+### 4. Settlement Rule Boundary Disclaimer
+> **Settlement Boundary Rule:** A valid HMAC-SHA256 signature proves that the webhook originated from the holder of the shared secret and was not tampered with. **It does NOT prove that an on-chain Zcash transaction took place.** Shielded settlement still requires independent backend note decryption by an incoming viewing key scanner.
 
 ---
 
