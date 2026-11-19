@@ -38,7 +38,7 @@ ZecForge provides a deterministic, interactive environment to test every stage o
 | **Workbench Dashboard & Shell** | Fintech Design System | ✅ Implemented | Deep navy fintech theme, responsive sidebar, simulated testnet block counter, scanner status. |
 | **Receiving Address Validator** | ZIP-316, ZIP-32, Transparent | ✅ Implemented | Preliminary format check for Unified (`u1`/`utest1`), Sapling (`zs1`/`ztestsapling1`), and Transparent (`t1`/`tm`). Network mismatch detection. |
 | **Payment Request Builder** | ZIP-321 (Zucchini 0.5.2 Subset) | ✅ Implemented | Canonical URI generation, 8-decimal limit, unpadded base64url memo encoder, QR code rendering, transparent memo rejection. |
-| **Wallet Compatibility Sandbox** | `@zucchinifi/dapp-sdk` 0.2.0 | ⏳ In Roadmap | Zucchini provider discovery, permission negotiation, and ZIP-321 `requestPayment` dispatch. |
+| **Wallet Compatibility Sandbox** | `@zucchinifi/dapp-sdk` 0.2.0 | ✅ Implemented | Browser wallet discovery, EIP-1193 permission negotiation, ZIP-321 payment request dispatch, live RPC audit feed, and virtual simulator. |
 | **Edge Case Scenario Simulator** | Fail-Closed Reconciliation | ⏳ In Roadmap | Deterministic state machine simulating `underpaid`, `overpaid`, `late_payment`, and `reorg_review`. |
 | **HMAC Webhook Dispatcher** | HMAC-SHA256 Webhooks | ⏳ In Roadmap | Simulated event signing (`signReceiptWebhook`) and backend payload verification. |
 | **Integration Audit Report** | Merchant Compliance Export | ⏳ In Roadmap | Exportable markdown and JSON audit report for merchant readiness. |
