@@ -25,6 +25,8 @@ import {
   type ScenarioSession,
   DEFAULT_REQUIRED_CONFIRMATIONS,
 } from "@/lib/zcash/scenarios";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SettlementRuleAlert } from "@/components/ui/SettlementRuleAlert";
 import { cn } from "@/lib/utils";
 
 interface ScenarioPreset {
@@ -143,37 +145,32 @@ export default function ScenariosPage() {
   const progressPercent = Math.min(100, Math.round((session.confirmations / targetThreshold) * 100));
 
   return (
-    <div className="space-y-8 max-w-6xl">
-      {/* Header */}
-      <div className="border border-surface-border bg-surface rounded-xl p-6 md:p-8 relative overflow-hidden">
-        <div className="max-w-3xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md bg-primary-950 text-primary-300 border border-primary-800/60 text-xs font-mono font-medium">
-            <FlaskConical className="w-3.5 h-3.5" />
-            Deterministic Reconciliation State Machine
+    <div className="space-y-8 font-sans">
+      {/* Page Header */}
+      <PageHeader
+        badge="Deterministic Reconciliation State Machine"
+        badgeIcon={FlaskConical}
+        title="Payment Edge Case Scenario Simulator"
+        description="Test and validate how merchant payment integrations handle real-world edge cases: mempool detection, block confirmations, underpayments, overpayments, expired invoices, and chain reorganisations."
+        actions={
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
+              <Layers className="w-3.5 h-3.5 text-primary-400" />
+              <span>8 States</span>
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
+              <Clock className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Zatoshis BigInt</span>
+            </span>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100">
-            Payment Edge Case Scenario Simulator
-          </h1>
-          <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-            Test and understand how merchant payment integrations handle real-world edge cases: mempool detection, block
-            confirmations, underpayments, overpayments, expired invoices, and chain reorganisations.
-          </p>
-        </div>
-      </div>
+        }
+      />
 
       {/* Settlement Principle Notice */}
-      <div className="p-4 rounded-lg bg-surface-subtle border border-surface-border flex items-start gap-3">
-        <Info className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
-        <div className="space-y-1 text-xs">
-          <h2 className="font-semibold text-slate-200">Reconciliation Rules & State Precedence</h2>
-          <p className="text-slate-400 leading-relaxed">
-            In standard Zcash merchant accounting, <strong>exceptions take precedence over confirmations</strong>. A
-            late arrival, underpayment, or overpayment will <strong>never</strong> silently transition to <code className="text-emerald-400 font-mono">paid</code>{" "}
-            simply by accumulating 10 confirmations. Automated fulfillment is strictly gated on:{" "}
-            <code className="text-primary-300 font-mono">exact amount AND on-time arrival AND canonical threshold</code>.
-          </p>
-        </div>
-      </div>
+      <SettlementRuleAlert
+        title="Reconciliation Rules & State Precedence"
+        description="In standard Zcash merchant accounting, exceptions take precedence over confirmations. A late arrival, underpayment, or overpayment will never silently transition to paid simply by accumulating 10 confirmations. Automated fulfillment is strictly gated on: exact amount AND on-time arrival AND canonical threshold."
+      />
 
       {/* Preset Quick-Launch Bar */}
       <div className="space-y-3">

@@ -29,6 +29,8 @@ import {
   WEBHOOK_SIGNATURE_HEADER,
   DEFAULT_TIMESTAMP_TOLERANCE_SECONDS,
 } from "@/lib/zcash/webhooks";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SettlementRuleAlert } from "@/components/ui/SettlementRuleAlert";
 import { cn } from "@/lib/utils";
 
 interface DispatchAuditEntry {
@@ -151,53 +153,32 @@ export default function WebhooksPage() {
   }
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="space-y-8 font-sans">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-surface-border pb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary-950/80 border border-primary-800/60 text-primary-400">
-              <Webhook className="w-6 h-6 text-primary-400" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-3">
-                HMAC-SHA256 Webhook Dispatcher
-                <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-violet-950/80 text-violet-300 border border-violet-800/60">
-                  Phase 6
-                </span>
-              </h1>
-              <p className="text-sm text-slate-400 mt-0.5">
-                Cryptographically sign, dispatch, retry, and verify merchant webhook events with replay protection.
-              </p>
-            </div>
+      <PageHeader
+        badge="HMAC-SHA256 Merchant Webhook Protocol"
+        badgeIcon={Webhook}
+        title="HMAC-SHA256 Webhook Dispatcher"
+        description="Cryptographically sign, dispatch, retry, and verify merchant webhook events with timestamp-bound replay protection and constant-time verification."
+        actions={
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
+              <Lock className="w-3.5 h-3.5 text-emerald-400" />
+              <span>HMAC-SHA256</span>
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
+              <Clock className="w-3.5 h-3.5 text-primary-400" />
+              <span>Tolerance: {DEFAULT_TIMESTAMP_TOLERANCE_SECONDS}s</span>
+            </span>
           </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
-            <Lock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>HMAC-SHA256</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
-            <Clock className="w-3.5 h-3.5 text-primary-400" />
-            <span>Tolerance: {DEFAULT_TIMESTAMP_TOLERANCE_SECONDS}s</span>
-          </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Critical Settlement Boundary Education Banner */}
-      <div className="rounded-xl border border-primary-900/60 bg-gradient-to-r from-primary-950/40 via-surface to-surface-elevated p-4 flex items-start gap-3.5">
-        <Info className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-slate-300 space-y-1">
-          <p className="font-semibold text-primary-200">
-            Cryptographic Webhook Boundary vs. Blockchain Settlement Rule
-          </p>
-          <p className="text-slate-400 leading-relaxed">
-            A valid HMAC-SHA256 signature guarantees that the HTTP payload was signed by a party possessing the shared secret and was not tampered with in transit.
-            <strong className="text-slate-200"> It does NOT prove that an on-chain Zcash payment took place.</strong> In production, webhook events must be emitted only by an authenticated backend scanner decrypting notes via an incoming viewing key.
-          </p>
-        </div>
-      </div>
+      <SettlementRuleAlert
+        title="Cryptographic Webhook Boundary vs. Blockchain Settlement Rule"
+        description="A valid HMAC-SHA256 signature guarantees that the HTTP payload was signed by a party possessing the shared secret and was not tampered with in transit. It does NOT prove that an on-chain Zcash payment took place. In production, webhook events must be emitted only by an authenticated backend scanner decrypting notes via an incoming viewing key."
+      />
 
       {/* Main Grid: Left Column (Controls & Payload) / Right Column (Delivery & Receiver) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

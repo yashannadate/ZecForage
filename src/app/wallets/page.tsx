@@ -41,6 +41,8 @@ import {
 } from "@/lib/zcash/zodl";
 import { type ZcashNetwork, inspectAddress } from "@/lib/zcash/addresses";
 import { utf8ToBytes } from "@/lib/zcash/zip321";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SettlementRuleAlert } from "@/components/ui/SettlementRuleAlert";
 import { cn } from "@/lib/utils";
 
 const SAMPLE_PAYMENT_URI =
@@ -325,60 +327,50 @@ export default function WalletSandboxPage() {
   const zodlMemoBytes = zodlMemo ? utf8ToBytes(zodlMemo).length : 0;
 
   return (
-    <div className="space-y-8 max-w-6xl">
-      {/* Header */}
-      <div className="border border-surface-border bg-surface rounded-xl p-6 md:p-8 relative overflow-hidden">
-        <div className="max-w-3xl space-y-2">
-          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md bg-primary-950 text-primary-300 border border-primary-800/60 text-xs font-mono font-medium">
-            <Layers className="w-3.5 h-3.5" />
-            Multi-Wallet Standards Sandbox
+    <div className="space-y-8 font-sans">
+      {/* Page Header */}
+      <PageHeader
+        badge="Multi-Wallet Standards Sandbox"
+        badgeIcon={Layers}
+        title="Wallet Compatibility Workbench"
+        description="Test and validate shielded Zcash merchant payment flows across browser extension environments (Zucchini Wallet via Dapp SDK) and mobile air-gapped QR / deep-linking workflows (Zodl / Zashi)."
+        actions={
+          <div className="inline-flex rounded-lg bg-surface-elevated p-1 border border-surface-border text-xs font-mono">
+            <button
+              type="button"
+              onClick={() => setActiveTab("zucchini")}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all",
+                activeTab === "zucchini"
+                  ? "bg-primary-600 text-white shadow-sm font-semibold"
+                  : "text-slate-400 hover:text-slate-200"
+              )}
+            >
+              <Wallet className="w-3.5 h-3.5" />
+              <span>Zucchini (Browser)</span>
+              <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-primary-950 text-primary-300 border border-primary-800/60">
+                SDK
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("zodl")}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-md font-medium transition-all",
+                activeTab === "zodl"
+                  ? "bg-primary-600 text-white shadow-sm font-semibold"
+                  : "text-slate-400 hover:text-slate-200"
+              )}
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Zodl (Mobile)</span>
+              <span className="text-[10px] font-mono px-1 py-0.2 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
+                QR
+              </span>
+            </button>
           </div>
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100">
-            Wallet Compatibility Workbench
-          </h1>
-          <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-            Test and validate shielded Zcash merchant payment flows across both browser extension environments (Zucchini
-            Wallet via Dapp SDK) and mobile air-gapped QR / deep-linking workflows (Zodl / Zashi).
-          </p>
-        </div>
-      </div>
-
-      {/* Wallet Switcher Tabs */}
-      <div className="flex border-b border-surface-border">
-        <button
-          type="button"
-          onClick={() => setActiveTab("zucchini")}
-          className={cn(
-            "flex items-center gap-2.5 px-6 py-3 text-xs font-semibold border-b-2 transition-colors",
-            activeTab === "zucchini"
-              ? "border-primary-500 text-primary-300 bg-surface/50"
-              : "border-transparent text-slate-400 hover:text-slate-200"
-          )}
-        >
-          <Wallet className="w-4 h-4" />
-          <span>Zucchini Wallet (Browser Extension)</span>
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-primary-950 text-primary-300 border border-primary-800/60">
-            Dapp SDK
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("zodl")}
-          className={cn(
-            "flex items-center gap-2.5 px-6 py-3 text-xs font-semibold border-b-2 transition-colors",
-            activeTab === "zodl"
-              ? "border-primary-500 text-primary-300 bg-surface/50"
-              : "border-transparent text-slate-400 hover:text-slate-200"
-          )}
-        >
-          <Smartphone className="w-4 h-4" />
-          <span>Zodl Wallet (Mobile / Zashi)</span>
-          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/60">
-            ZIP-321 QR
-          </span>
-        </button>
-      </div>
+        }
+      />
 
       {/* ========================================================================= */}
       {/* TAB 1: ZUCCHINI WALLET (BROWSER EXTENSION / RPC) */}
@@ -386,18 +378,10 @@ export default function WalletSandboxPage() {
       {activeTab === "zucchini" && (
         <div className="space-y-6">
           {/* Critical Settlement Rule Notice */}
-          <div className="p-4 rounded-lg bg-surface-subtle border border-surface-border flex items-start gap-3">
-            <Info className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-xs">
-              <h2 className="font-semibold text-slate-200">The Broadcast vs. Settlement Rule</h2>
-              <p className="text-slate-400 leading-relaxed">
-                When <code className="text-primary-300 font-mono">requestPayment(uri)</code> succeeds, the returned{" "}
-                <code className="text-primary-300 font-mono">txid</code> proves that the customer approved and broadcasted the
-                transaction. It does <strong>not</strong> prove confirmed merchant receipt. Final merchant settlement must be
-                verified by your backend viewing key scanner after block confirmations accumulate.
-              </p>
-            </div>
-          </div>
+          <SettlementRuleAlert
+            title="The Broadcast vs. Settlement Rule"
+            description="When requestPayment(uri) succeeds, the returned txid proves that the customer approved and broadcasted the transaction. It does NOT prove confirmed merchant receipt. Final merchant settlement must be verified by your backend viewing key scanner after block confirmations accumulate."
+          />
 
           {/* Mode Selector & Detection Card */}
           <div className="p-4 rounded-xl border border-surface-border bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-4">
