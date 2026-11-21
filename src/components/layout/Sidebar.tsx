@@ -34,7 +34,7 @@ export const navItems: NavItem[] = [
   { name: "Wallet Compatibility", href: "/wallets", icon: Wallet, badge: "Dapp SDK", ready: true },
   { name: "Scenario Simulator", href: "/scenarios", icon: FlaskConical, badge: "State Machine", ready: true },
   { name: "Webhook Workbench", href: "/webhooks", icon: Webhook, badge: "HMAC-SHA256", ready: true },
-  { name: "Integration Report", href: "/reports", icon: FileCheck2, ready: false },
+  { name: "Integration Report", href: "/reports", icon: FileCheck2, badge: "Audit Report", ready: true },
   { name: "Merchant Config", href: "/settings", icon: Settings2, ready: false },
 ];
 

@@ -247,30 +247,33 @@ export default function DashboardOverview() {
           </Link>
 
           {/* Module 6: Integration Report */}
-          <div className="p-5 rounded-xl bg-surface/50 border border-surface-border/60 flex flex-col justify-between opacity-75">
+          <Link
+            href="/reports"
+            className="group p-5 rounded-xl bg-surface border border-surface-border hover:border-primary-500/50 hover:bg-surface-elevated/70 transition-all flex flex-col justify-between"
+          >
             <div className="space-y-3">
-              <div className="w-9 h-9 rounded-lg bg-surface-elevated/60 border border-surface-border/60 flex items-center justify-center text-slate-500">
+              <div className="w-9 h-9 rounded-lg bg-surface-elevated border border-surface-border flex items-center justify-center text-primary-400 group-hover:border-primary-500/40 group-hover:bg-primary-950/60 transition-all">
                 <FileCode2 className="w-4 h-4" />
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm text-slate-300">
+                  <h3 className="font-semibold text-sm text-slate-100 group-hover:text-primary-300 transition-colors">
                     Integration Audit Report
                   </h3>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-elevated text-slate-500 border border-surface-border">
-                    Phase 7
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-elevated text-slate-400 border border-surface-border">
+                    Audit Report
                   </span>
                 </div>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Exportable merchant compliance certification, checklist scores, and integration guide for production deployments.
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Exportable merchant compliance certification, checklist scores, and JSON/Markdown audit reports.
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-3 border-t border-surface-border/40 flex items-center justify-between text-xs font-mono text-slate-600">
-              <span>Next Milestone</span>
-              <span>Pending</span>
+            <div className="mt-4 pt-3 border-t border-surface-border/60 flex items-center justify-between text-xs font-mono text-slate-500 group-hover:text-primary-400 transition-colors">
+              <span>View audit report</span>
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </div>
-          </div>
+          </Link>
         </div>
       </div>
 

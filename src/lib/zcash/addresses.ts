@@ -24,7 +24,7 @@ const BASE58_CHARSET_REGEX = /^[1-9A-HJ-NP-Za-km-z]+$/;
 
 /**
  * Inspects a Zcash address candidate and evaluates structural conformity
- * against ZIP-316 (Unified), ZIP-32 (Sapling), and Transparent formats.
+ * against ZIP-316 (Unified Addresses), Sapling (Protocol Spec §5.6.3.1), and Transparent formats.
  *
  * NOTE: This is a preliminary format & prefix check. As required by protocol
  * safety rules, this does NOT perform curve point validation or full Bech32m
