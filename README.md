@@ -5,6 +5,9 @@
 <div align="center">
   <img src="https://img.shields.io/badge/Zcash-F4B728?style=for-the-badge&logo=zcash&logoColor=black" alt="Zcash" />
   <img src="https://img.shields.io/badge/License-MIT-white?style=for-the-badge" alt="MIT License" />
+  <a href="https://zecforage.vercel.app">
+    <img src="https://img.shields.io/badge/Deployed-Live%20on%20Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
+  </a>
 </div>
 
 <br />
@@ -16,6 +19,8 @@
 <p align="center">
   ZecForage is an open-source Testnet-only developer workbench for designing, validating, simulating, and verifying Zcash merchant payment flows before building production infrastructure. Build ZIP-321 payment requests, test wallet handoffs, replay edge-case settlement scenarios, and verify HMAC-signed webhook delivery — all locally, all honestly labelled.
   <br /><br />
+  <a href="https://zecforage.vercel.app"><strong>🔴 Live Demo</strong></a>
+  &nbsp;·&nbsp;
   <a href="#-application-interface"><strong>📸 Screenshots</strong></a>
   &nbsp;·&nbsp;
   <a href="#-getting-started"><strong>🚀 Quick Start</strong></a>
