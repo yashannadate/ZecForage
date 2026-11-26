@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   FlaskConical,
   CheckCircle2,
@@ -27,7 +27,37 @@ import {
 } from "@/lib/zcash/scenarios";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SettlementRuleAlert } from "@/components/ui/SettlementRuleAlert";
+import { loadWorkbenchState, saveWorkbenchState, appendWorkbenchActivity } from "@/lib/settings/store";
 import { cn } from "@/lib/utils";
+
+const INITIAL_SSR_SESSION: ScenarioSession = {
+  invoice: {
+    id: "inv_sim_initial",
+    expectedZEC: "0.05",
+    expectedZatoshis: BigInt(5_000_000),
+    createdAt: 1764144000000,
+    expiresAt: 1764144900000,
+    requiredConfirmations: DEFAULT_REQUIRED_CONFIRMATIONS,
+  },
+  currentState: "awaiting_payment",
+  receivedZatoshis: BigInt(0),
+  confirmations: 0,
+  canFulfill: false,
+  isExpired: false,
+  auditTrail: [
+    {
+      id: "audit_initial",
+      timestamp: 1764144000000,
+      previousState: "awaiting_payment",
+      newState: "awaiting_payment",
+      eventType: "INVOICE_INITIALIZED",
+      receivedZatoshis: "0",
+      confirmations: 0,
+      canFulfill: false,
+      reason: "Invoice initialized for 0.05 ZEC (5000000 zatoshis). Awaiting payment detection.",
+    },
+  ],
+};
 
 interface ScenarioPreset {
   title: string;
@@ -37,32 +67,59 @@ interface ScenarioPreset {
 }
 
 export default function ScenariosPage() {
-  const [session, setSession] = useState<ScenarioSession>(() => createScenarioSession({ expectedZEC: "0.05" }));
+  const [session, setSession] = useState<ScenarioSession>(INITIAL_SSR_SESSION);
   const [customAmount, setCustomAmount] = useState<string>("0.05");
   const [reqConfsInput, setReqConfsInput] = useState<number>(DEFAULT_REQUIRED_CONFIRMATIONS);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const syncPolicy = () => {
+      const savedThreshold = loadWorkbenchState().settings.confirmationThreshold;
+      setReqConfsInput(savedThreshold);
+      setSession((prev) => ({
+        ...prev,
+        invoice: {
+          ...prev.invoice,
+          requiredConfirmations: savedThreshold,
+        },
+        currentState:
+          prev.currentState === "confirming" && prev.confirmations >= savedThreshold
+            ? "paid"
+            : prev.currentState === "paid" && prev.confirmations < savedThreshold
+            ? "confirming"
+            : prev.currentState,
+        canFulfill:
+          prev.currentState === "paid"
+            ? prev.confirmations >= savedThreshold
+            : prev.currentState === "confirming" && prev.confirmations >= savedThreshold,
+      }));
+    };
+    syncPolicy();
+    window.addEventListener("zecforage:state-updated", syncPolicy);
+    return () => window.removeEventListener("zecforage:state-updated", syncPolicy);
+  }, []);
+
   // Quick Launch Presets
   const presets: ScenarioPreset[] = [
     {
-      title: "Happy Path: Exact Payment & 10 Confirmations",
+      title: `Happy Path: Exact Payment & ${reqConfsInput} Confirmations`,
       badge: "Standard",
-      description: "Customer pays exact 0.05 ZEC on time. Block confirmations accumulate from 0 to 10.",
+      description: `Customer pays exact 0.05 ZEC on time. Block confirmations accumulate from 0 to ${reqConfsInput}.`,
       action: () => {
         let s = createScenarioSession({ expectedZEC: "0.05", requiredConfirmations: reqConfsInput });
         s = transitionScenario(s, { type: "PAYMENT_DETECTED", amountZEC: "0.05" });
-        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: 10 });
+        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: reqConfsInput });
         return s;
       },
     },
     {
       title: "Underpayment: 0.04 ZEC Received",
       badge: "Exception",
-      description: "Customer sends less than requested. Demonstrates that 10 confirmations does NOT trigger fulfillment.",
+      description: `Customer sends less than requested. Demonstrates that ${reqConfsInput} confirmations does NOT trigger fulfillment.`,
       action: () => {
         let s = createScenarioSession({ expectedZEC: "0.05", requiredConfirmations: reqConfsInput });
         s = transitionScenario(s, { type: "PAYMENT_DETECTED", amountZEC: "0.04" });
-        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: 10 });
+        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: reqConfsInput });
         return s;
       },
     },
@@ -73,7 +130,7 @@ export default function ScenariosPage() {
       action: () => {
         let s = createScenarioSession({ expectedZEC: "0.05", requiredConfirmations: reqConfsInput });
         s = transitionScenario(s, { type: "PAYMENT_DETECTED", amountZEC: "0.08" });
-        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: 10 });
+        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: reqConfsInput });
         return s;
       },
     },
@@ -85,18 +142,18 @@ export default function ScenariosPage() {
         let s = createScenarioSession({ expectedZEC: "0.05", requiredConfirmations: reqConfsInput });
         s = transitionScenario(s, { type: "EXPIRE_INVOICE" });
         s = transitionScenario(s, { type: "SIMULATE_LATE_PAYMENT", amountZEC: "0.05" });
-        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: 10 });
+        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: reqConfsInput });
         return s;
       },
     },
     {
-      title: "Chain Reorganisation (10 → 3 Confirmations)",
+      title: `Chain Reorganisation (${reqConfsInput} → ${Math.max(0, reqConfsInput - 7)} Confirmations)`,
       badge: "Consensus",
       description: "A deep 7-block reorganisation drops canonical inclusion height. State transitions to reorg_review.",
       action: () => {
         let s = createScenarioSession({ expectedZEC: "0.05", requiredConfirmations: reqConfsInput });
         s = transitionScenario(s, { type: "PAYMENT_DETECTED", amountZEC: "0.05" });
-        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: 10 });
+        s = transitionScenario(s, { type: "CONFIRMATIONS_ADVANCED", count: reqConfsInput });
         s = transitionScenario(s, { type: "SIMULATE_REORG", droppedConfirmations: 7 });
         return s;
       },
@@ -108,6 +165,21 @@ export default function ScenariosPage() {
     try {
       const nextSession = eventAction();
       setSession(nextSession);
+      saveWorkbenchState({
+        checklist: { ...loadWorkbenchState().checklist, step2: true },
+        scenario: {
+          currentState: nextSession.currentState,
+          confirmations: nextSession.confirmations,
+          requiredConfirmations: nextSession.invoice.requiredConfirmations,
+          canFulfill: nextSession.canFulfill,
+          timestamp: Date.now(),
+        },
+      });
+      appendWorkbenchActivity({
+        tool: "Scenario Simulator",
+        label: `${nextSession.auditTrail[0]?.eventType || "TRANSITION"} → ${nextSession.currentState} (${nextSession.confirmations}/${nextSession.invoice.requiredConfirmations} confs)`,
+        kind: "simulated",
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid state transition");
     }
@@ -115,18 +187,31 @@ export default function ScenariosPage() {
 
   const handleReset = () => {
     setError(null);
-    setSession(createScenarioSession({ expectedZEC: session.invoice.expectedZEC, requiredConfirmations: reqConfsInput }));
+    const nextSession = createScenarioSession({
+      expectedZEC: session.invoice.expectedZEC,
+      requiredConfirmations: reqConfsInput,
+    });
+    setSession(nextSession);
+    saveWorkbenchState({
+      scenario: {
+        currentState: nextSession.currentState,
+        confirmations: nextSession.confirmations,
+        requiredConfirmations: nextSession.invoice.requiredConfirmations,
+        canFulfill: nextSession.canFulfill,
+        timestamp: Date.now(),
+      },
+    });
   };
 
   // Helper for status styling
   const getStateBadge = (state: PaymentState) => {
     switch (state) {
       case "awaiting_payment":
-        return { label: "AWAITING PAYMENT", style: "bg-surface-elevated text-slate-400 border-surface-border" };
+        return { label: "AWAITING PAYMENT", style: "bg-neutral-900 text-[#929292] border-neutral-800" };
       case "detected":
-        return { label: "PAYMENT DETECTED (0 CONFS)", style: "bg-sky-950 text-sky-300 border-sky-800/60" };
+        return { label: "PAYMENT DETECTED (0 CONFS)", style: "bg-cyan-950/60 text-cyan-300 border-cyan-800/60" };
       case "confirming":
-        return { label: "CONFIRMING BLOCKS", style: "bg-primary-950 text-primary-300 border-primary-800/60" };
+        return { label: "CONFIRMING BLOCKS", style: "bg-neutral-900 text-cyan-200 border-neutral-800/60" };
       case "paid":
         return { label: "PAID & SETTLED", style: "bg-emerald-950 text-emerald-300 border-emerald-800/60" };
       case "underpaid":
@@ -154,11 +239,11 @@ export default function ScenariosPage() {
         description="Test and validate how merchant payment integrations handle real-world edge cases: mempool detection, block confirmations, underpayments, overpayments, expired invoices, and chain reorganisations."
         actions={
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
-              <Layers className="w-3.5 h-3.5 text-primary-400" />
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 font-mono">
+              <Layers className="w-3.5 h-3.5 text-cyan-300" />
               <span>8 States</span>
             </span>
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-elevated border border-surface-border text-xs text-slate-300 font-mono">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-900 border border-neutral-800 text-xs text-neutral-300 font-mono">
               <Clock className="w-3.5 h-3.5 text-emerald-400" />
               <span>Zatoshis BigInt</span>
             </span>
@@ -174,11 +259,11 @@ export default function ScenariosPage() {
 
       {/* Preset Quick-Launch Bar */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase font-mono tracking-wider text-slate-300">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xs font-normal uppercase font-mono tracking-wider text-[#929292]">
             Quick-Launch Scenario Presets
           </h2>
-          <span className="text-[11px] font-mono text-slate-500">1-click deterministic replays</span>
+          <span className="text-xs font-mono text-[#929292] uppercase tracking-wider">1-click deterministic replays</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -187,55 +272,56 @@ export default function ScenariosPage() {
               key={idx}
               type="button"
               onClick={() => handleApplyEvent(() => preset.action(session))}
-              className="p-3.5 rounded-xl bg-surface border border-surface-border hover:border-primary-500/50 hover:bg-surface-elevated transition-all text-left flex flex-col justify-between space-y-2 group"
+              className="min-h-11 p-3.5 rounded-xl bg-[#080808] border border-neutral-800 hover:border-neutral-600 hover:bg-neutral-900 transition-all text-left flex flex-col justify-between space-y-2 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               <div className="space-y-1">
-                <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-surface-subtle border border-surface-border text-slate-400">
+                <span className="text-xs font-mono font-normal uppercase tracking-wider px-1.5 py-0.5 rounded bg-black border border-neutral-800 text-[#929292]">
                   {preset.badge}
                 </span>
-                <h3 className="font-semibold text-xs text-slate-200 group-hover:text-primary-300 transition-colors leading-tight">
+                <h3 className="font-medium text-sm text-white tracking-tight group-hover:text-cyan-200 transition-colors leading-snug">
                   {preset.title}
                 </h3>
               </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2">{preset.description}</p>
+              <p className="text-xs font-normal text-[#929292] leading-relaxed line-clamp-2">{preset.description}</p>
             </button>
           ))}
         </div>
       </div>
 
       {/* Current Invoice & State Status Card */}
-      <div className="p-6 rounded-xl border border-surface-border bg-surface space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-surface-border">
+      <div className="p-6 rounded-xl border border-neutral-800 bg-[#080808] space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-mono text-slate-500">Invoice:</span>
-              <span className="font-mono text-xs text-slate-200 font-semibold">{session.invoice.id}</span>
+              <span className="text-xs uppercase font-mono text-neutral-500">Invoice:</span>
+              <span className="font-mono text-xs text-neutral-200 font-semibold">{session.invoice.id}</span>
               {session.isExpired && (
                 <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-red-950 text-red-300 border border-red-800/60 font-semibold">
                   EXPIRED
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-4 text-xs font-mono text-slate-400">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-[#929292]">
               <span>
-                Requested: <strong className="text-slate-200">{session.invoice.expectedZEC} ZEC</strong> (
+                Requested: <strong className="text-neutral-200">{session.invoice.expectedZEC} ZEC</strong> (
                 {session.invoice.expectedZatoshis.toString()} zatoshis)
               </span>
               <span>
-                Received: <strong className="text-slate-200">{session.receivedZatoshis.toString()}</strong> zatoshis
+                Received: <strong className="text-neutral-200">{session.receivedZatoshis.toString()}</strong> zatoshis
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className={cn("px-3 py-1.5 rounded-lg border text-xs font-mono font-bold tracking-wide", currentBadge.style)}>
               {currentBadge.label}
             </span>
             <button
               type="button"
               onClick={handleReset}
-              className="p-1.5 rounded-lg bg-surface-elevated hover:bg-surface-border border border-surface-border text-slate-400 hover:text-slate-200 transition-colors"
+              className="min-h-10 min-w-10 flex items-center justify-center p-2 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-[#929292] hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               title="Reset scenario"
+              aria-label="Reset scenario"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
@@ -244,14 +330,14 @@ export default function ScenariosPage() {
 
         {/* Confirmation Progress Bar */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-mono">
-            <div className="flex items-center gap-2 text-slate-400">
-              <Clock className="w-3.5 h-3.5 text-primary-400" />
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+            <div className="flex items-center gap-2 text-[#929292]">
+              <Clock className="w-3.5 h-3.5 text-cyan-300" />
               <span>
-                Block Confirmations: <strong className="text-slate-200">{session.confirmations}</strong> / {targetThreshold}
+                Block Confirmations: <strong className="text-neutral-200">{session.confirmations}</strong> / {targetThreshold}
               </span>
             </div>
-            <span className="text-slate-400">
+            <span className="text-[#929292]">
               Fulfillment Status:{" "}
               {session.canFulfill ? (
                 <strong className="text-emerald-400">✓ AUTHORIZED (canFulfill: true)</strong>
@@ -262,7 +348,7 @@ export default function ScenariosPage() {
           </div>
 
           {/* Progress Track */}
-          <div className="w-full h-3 rounded-full bg-surface-subtle border border-surface-border overflow-hidden relative">
+          <div className="w-full h-3 rounded-full bg-black border border-neutral-800 overflow-hidden relative">
             <div
               className={cn(
                 "h-full transition-all duration-300",
@@ -272,13 +358,13 @@ export default function ScenariosPage() {
                   ? "bg-red-500"
                   : session.currentState === "underpaid" || session.currentState === "overpaid"
                   ? "bg-amber-500"
-                  : "bg-primary-500"
+                  : "bg-cyan-300"
               )}
               style={{ width: `${progressPercent}%` }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+          <div className="flex items-center justify-between text-[10px] font-mono text-neutral-500">
             <span>0 (Mempool Detection)</span>
             <span>Policy Threshold: {targetThreshold} Blocks (~12.5m)</span>
           </div>
@@ -295,18 +381,18 @@ export default function ScenariosPage() {
       {/* Manual Simulation Controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Payment Ingestion Simulation */}
-        <div className="p-6 rounded-xl border border-surface-border bg-surface space-y-4">
-          <div className="space-y-1 pb-3 border-b border-surface-border">
-            <h2 className="text-xs font-semibold text-slate-200 uppercase font-mono tracking-wider flex items-center gap-2">
-              <Play className="w-3.5 h-3.5 text-primary-400" />
+        <div className="p-6 rounded-xl border border-neutral-800 bg-[#080808] space-y-4">
+          <div className="space-y-1 pb-3 border-b border-neutral-800">
+            <h2 className="text-base font-medium text-white tracking-tight flex items-center gap-2">
+              <Play className="w-4 h-4 text-cyan-300" />
               1. Payment Ingestion Controls
             </h2>
-            <p className="text-[11px] text-slate-500">Simulate incoming shielded note observations from scanner</p>
+            <p className="text-xs font-normal text-[#929292] leading-relaxed">Simulate incoming shielded note observations from scanner</p>
           </div>
 
           <div className="space-y-3">
             <div className="space-y-1">
-              <label htmlFor="custom-amount" className="text-xs font-semibold text-slate-300">
+              <label htmlFor="custom-amount" className="text-xs font-medium text-white">
                 Custom Detected Amount (ZEC)
               </label>
               <input
@@ -314,11 +400,11 @@ export default function ScenariosPage() {
                 type="text"
                 value={customAmount}
                 onChange={(e) => setCustomAmount(e.target.value)}
-                className="w-full bg-surface-subtle border border-surface-border focus:border-primary-500 rounded-lg p-2 text-xs font-mono text-slate-100 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                className="w-full bg-black border border-neutral-800 focus:border-neutral-700 rounded-lg p-2.5 text-sm font-mono text-white focus:outline-none focus:ring-1 focus:ring-cyan-300"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() =>
@@ -329,7 +415,7 @@ export default function ScenariosPage() {
                     })
                   )
                 }
-                className="py-2 px-3 rounded-lg bg-primary-600 hover:bg-primary-500 text-white font-semibold transition-colors flex items-center justify-center gap-1.5"
+                className="min-h-11 py-2 px-3 rounded-lg bg-white text-black text-sm font-medium hover:bg-neutral-200 transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 Detect Custom Amount
               </button>
@@ -344,7 +430,7 @@ export default function ScenariosPage() {
                     })
                   )
                 }
-                className="py-2 px-3 rounded-lg bg-surface-elevated hover:bg-emerald-950/40 hover:text-emerald-300 border border-surface-border hover:border-emerald-800 text-slate-200 font-medium transition-colors flex items-center justify-center gap-1"
+                className="min-h-11 py-2 px-3 rounded-lg bg-neutral-900 hover:bg-emerald-950/40 hover:text-emerald-300 border border-neutral-800 hover:border-emerald-800 text-white text-sm font-medium transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 Detect Exact ({session.invoice.expectedZEC})
               </button>
@@ -359,9 +445,9 @@ export default function ScenariosPage() {
                     })
                   )
                 }
-                className="py-2 px-3 rounded-lg bg-surface-elevated hover:bg-amber-950/40 hover:text-amber-300 border border-surface-border hover:border-amber-800 text-slate-200 font-medium transition-colors flex items-center justify-center gap-1"
+                className="min-h-11 py-2 px-3 rounded-lg bg-neutral-900 hover:bg-amber-950/40 hover:text-amber-300 border border-neutral-800 hover:border-amber-800 text-white text-sm font-medium transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                <TrendingDown className="w-3.5 h-3.5 text-amber-400" /> Underpay (0.04)
+                <TrendingDown className="w-4 h-4 text-amber-400" /> Underpay (0.04)
               </button>
 
               <button
@@ -374,13 +460,13 @@ export default function ScenariosPage() {
                     })
                   )
                 }
-                className="py-2 px-3 rounded-lg bg-surface-elevated hover:bg-amber-950/40 hover:text-amber-300 border border-surface-border hover:border-amber-800 text-slate-200 font-medium transition-colors flex items-center justify-center gap-1"
+                className="min-h-11 py-2 px-3 rounded-lg bg-neutral-900 hover:bg-amber-950/40 hover:text-amber-300 border border-neutral-800 hover:border-amber-800 text-white text-sm font-medium transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                <TrendingUp className="w-3.5 h-3.5 text-amber-400" /> Overpay (0.08)
+                <TrendingUp className="w-4 h-4 text-amber-400" /> Overpay (0.08)
               </button>
             </div>
 
-            <div className="pt-2 border-t border-surface-border/60 flex items-center gap-2">
+            <div className="pt-2 border-t border-neutral-800/60 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <button
                 type="button"
                 onClick={() =>
@@ -391,7 +477,7 @@ export default function ScenariosPage() {
                     })
                   )
                 }
-                className="flex-1 py-1.5 px-3 rounded-lg bg-surface-elevated hover:bg-rose-950/40 hover:text-rose-300 border border-surface-border hover:border-rose-800 text-slate-300 text-xs font-medium transition-colors"
+                className="flex-1 min-h-11 py-2 px-3 rounded-lg bg-neutral-900 hover:bg-rose-950/40 hover:text-rose-300 border border-neutral-800 hover:border-rose-800 text-white text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 Simulate Late Arrival (Post-Expiry)
               </button>
@@ -399,7 +485,7 @@ export default function ScenariosPage() {
               <button
                 type="button"
                 onClick={() => handleApplyEvent(() => transitionScenario(session, { type: "EXPIRE_INVOICE" }))}
-                className="py-1.5 px-3 rounded-lg bg-surface-elevated hover:bg-surface-border border border-surface-border text-slate-400 hover:text-slate-200 text-xs transition-colors"
+                className="min-h-11 py-2 px-3 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-[#929292] hover:text-white text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 Expire Invoice
               </button>
@@ -408,17 +494,17 @@ export default function ScenariosPage() {
         </div>
 
         {/* Card 2: Consensus & Block Progression */}
-        <div className="p-6 rounded-xl border border-surface-border bg-surface space-y-4">
-          <div className="space-y-1 pb-3 border-b border-surface-border">
-            <h2 className="text-xs font-semibold text-slate-200 uppercase font-mono tracking-wider flex items-center gap-2">
-              <FastForward className="w-3.5 h-3.5 text-primary-400" />
+        <div className="p-6 rounded-xl border border-neutral-800 bg-[#080808] space-y-4">
+          <div className="space-y-1 pb-3 border-b border-neutral-800">
+            <h2 className="text-base font-medium text-white tracking-tight flex items-center gap-2">
+              <FastForward className="w-4 h-4 text-cyan-300" />
               2. Consensus & Confirmation Controls
             </h2>
-            <p className="text-[11px] text-slate-500">Advance block height or simulate blockchain reorganisations</p>
+            <p className="text-xs font-normal text-[#929292] leading-relaxed">Advance block height or simulate blockchain reorganisations</p>
           </div>
 
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() =>
@@ -430,7 +516,7 @@ export default function ScenariosPage() {
                   )
                 }
                 disabled={session.currentState === "awaiting_payment"}
-                className="py-2.5 px-3 rounded-lg bg-surface-elevated hover:bg-surface-border border border-surface-border text-slate-200 font-medium transition-colors disabled:opacity-40"
+                className="min-h-11 py-2.5 px-3 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-white text-sm font-medium transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 +1 Block Confirmation
               </button>
@@ -446,7 +532,7 @@ export default function ScenariosPage() {
                   )
                 }
                 disabled={session.currentState === "awaiting_payment"}
-                className="py-2.5 px-3 rounded-lg bg-surface-elevated hover:bg-surface-border border border-surface-border text-slate-200 font-medium transition-colors disabled:opacity-40"
+                className="min-h-11 py-2.5 px-3 rounded-lg bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-white text-sm font-medium transition-colors disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
                 +5 Block Confirmations
               </button>
@@ -462,13 +548,13 @@ export default function ScenariosPage() {
                   )
                 }
                 disabled={session.currentState === "awaiting_payment"}
-                className="py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold transition-colors disabled:opacity-40 col-span-2 flex items-center justify-center gap-1.5"
+                className="min-h-11 py-2.5 px-3 rounded-lg bg-white text-black text-sm font-medium hover:bg-neutral-200 transition-colors disabled:opacity-40 sm:col-span-2 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                <CheckCircle2 className="w-3.5 h-3.5" /> Advance to Full Settlement ({targetThreshold} Blocks)
+                <CheckCircle2 className="w-4 h-4" /> Advance to Full Settlement ({targetThreshold} Blocks)
               </button>
             </div>
 
-            <div className="pt-2 border-t border-surface-border/60">
+            <div className="pt-2 border-t border-neutral-800/60">
               <button
                 type="button"
                 onClick={() =>
@@ -480,9 +566,9 @@ export default function ScenariosPage() {
                   )
                 }
                 disabled={session.currentState === "awaiting_payment"}
-                className="w-full py-2.5 px-3 rounded-lg bg-surface-elevated hover:bg-red-950/40 hover:text-red-300 border border-surface-border hover:border-red-800/60 text-slate-200 text-xs font-semibold transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                className="w-full min-h-11 py-2.5 px-3 rounded-lg bg-neutral-900 hover:bg-red-950/40 hover:text-red-300 border border-neutral-800 hover:border-red-800/60 text-white text-sm font-medium transition-colors disabled:opacity-40 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
               >
-                <ShieldAlert className="w-3.5 h-3.5 text-red-400" />
+                <ShieldAlert className="w-4 h-4 text-red-400" />
                 Simulate Chain Reorganisation (Drop 7 Confirmations)
               </button>
             </div>
@@ -491,38 +577,38 @@ export default function ScenariosPage() {
       </div>
 
       {/* State Transition Audit Trail Stream */}
-      <div className="border border-surface-border bg-surface rounded-xl p-6 md:p-8 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-surface-border">
+      <div className="border border-neutral-800 bg-[#080808] rounded-xl p-6 md:p-8 space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
           <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-primary-400" />
-            <h2 className="text-xs font-semibold text-slate-200 uppercase font-mono tracking-wider">
+            <History className="w-4 h-4 text-cyan-300" />
+            <h2 className="text-xs font-semibold text-neutral-200 uppercase font-mono tracking-wider">
               State Transition Audit Trail ({session.auditTrail.length})
             </h2>
           </div>
-          <span className="text-[10px] font-mono text-slate-500">Immutable ledger log</span>
+          <span className="text-[10px] font-mono text-neutral-500">Immutable ledger log</span>
         </div>
 
         <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
           {session.auditTrail.map((entry) => (
             <div
               key={entry.id}
-              className="p-3.5 rounded-lg bg-surface-subtle border border-surface-border text-xs font-mono space-y-1.5"
+              className="p-3.5 rounded-lg bg-black border border-neutral-800 text-xs font-mono space-y-1.5"
             >
-              <div className="flex items-center justify-between text-[11px]">
-                <div className="flex items-center gap-2">
-                  <span className="text-primary-400 font-bold">{entry.eventType}</span>
-                  <span className="text-slate-500 flex items-center gap-1">
-                    {entry.previousState} <ArrowRight className="w-3 h-3 text-slate-600" /> {entry.newState}
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-cyan-300 font-bold">{entry.eventType}</span>
+                  <span className="text-neutral-500 flex items-center gap-1">
+                    {entry.previousState} <ArrowRight className="w-3 h-3 text-neutral-600" /> {entry.newState}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[10px]">
-                  <span className="text-slate-500">{new Date(entry.timestamp).toLocaleTimeString()}</span>
+                  <span className="text-neutral-500">{new Date(entry.timestamp).toLocaleTimeString("en-US")}</span>
                   <span
                     className={cn(
                       "px-1.5 py-0.5 rounded text-[9px] font-semibold uppercase",
                       entry.canFulfill
                         ? "bg-emerald-950 text-emerald-300 border border-emerald-800/60"
-                        : "bg-surface-elevated text-slate-400 border border-surface-border"
+                        : "bg-neutral-900 text-[#929292] border border-neutral-800"
                     )}
                   >
                     {entry.canFulfill ? "FULFILL" : "WITHHOLD"}
@@ -530,9 +616,9 @@ export default function ScenariosPage() {
                 </div>
               </div>
 
-              <p className="text-[11px] text-slate-300 font-sans leading-relaxed">{entry.reason}</p>
+              <p className="text-[11px] text-neutral-300 font-sans leading-relaxed">{entry.reason}</p>
 
-              <div className="flex items-center gap-4 text-[10px] text-slate-500 pt-0.5">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-neutral-500 pt-0.5">
                 <span>Received: {entry.receivedZatoshis} zatoshis</span>
                 <span>Confirmations: {entry.confirmations}</span>
               </div>
@@ -540,7 +626,7 @@ export default function ScenariosPage() {
           ))}
         </div>
 
-        <div className="pt-2 text-[11px] text-slate-500 font-mono flex items-center justify-between">
+        <div className="pt-2 text-[11px] text-neutral-500 font-mono flex items-center justify-between">
           <span>Deterministic Simulator v0.1.0</span>
           <span>Zero Blockchain Risk</span>
         </div>
@@ -548,3 +634,4 @@ export default function ScenariosPage() {
     </div>
   );
 }
+

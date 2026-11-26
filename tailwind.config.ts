@@ -10,46 +10,66 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#080C14",
+        background: "#000000",
         surface: {
-          DEFAULT: "#0F1626",
-          elevated: "#151F36",
-          border: "#1E2A47",
-          subtle: "#121A2D",
+          DEFAULT: "#080808",
+          elevated: "#101010",
+          border: "#262626",
+          subtle: "#050505",
         },
         primary: {
-          50: "#f5f3ff",
-          100: "#ede9fe",
-          200: "#ddd6fe",
-          300: "#c4b5fd",
-          400: "#a78bfa",
-          500: "#8b5cf6",
-          600: "#7c3aed",
-          700: "#6d28d9",
-          DEFAULT: "#7c3aed",
+          50: "#ecfeff",
+          100: "#cffafe",
+          200: "#a5f3fc",
+          300: "#67e8f9",
+          400: "#35C9E8",
+          500: "#06b6d4",
+          600: "#0891b2",
+          700: "#0e7490",
+          DEFAULT: "#35C9E8",
         },
         success: {
-          subtle: "#06281D",
-          border: "#0E563F",
+          subtle: "#052e16",
+          border: "#14532d",
           DEFAULT: "#10b981",
         },
         warning: {
-          subtle: "#2A1D07",
-          border: "#644610",
+          subtle: "#451a03",
+          border: "#78350f",
           DEFAULT: "#f59e0b",
         },
         danger: {
-          subtle: "#2C0F14",
-          border: "#6E1E26",
+          subtle: "#450a0a",
+          border: "#7f1d1d",
           DEFAULT: "#ef4444",
+        },
+        cyan: {
+          300: "#67e8f9",
+          400: "#35C9E8",
+          DEFAULT: "#35C9E8",
         },
         zcash: {
           yellow: "#F4B728",
           dark: "#1A1A1A",
-        }
+        },
       },
       fontFamily: {
-        mono: ["var(--font-mono)", "JetBrains Mono", "monospace"],
+        sans: ["'Geist'", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+        mono: ["'Geist Mono'", "monospace"],
+      },
+      keyframes: {
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-7px)" },
+        },
+        breathe: {
+          "0%, 100%": { opacity: "0.42" },
+          "50%": { opacity: "0.65" },
+        },
+      },
+      animation: {
+        float: "float 14s ease-in-out infinite",
+        breathe: "breathe 8s ease-in-out infinite",
       },
     },
   },
@@ -57,4 +77,3 @@ const config: Config = {
 };
 
 export default config;
-

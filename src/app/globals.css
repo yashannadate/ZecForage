@@ -1,18 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #080C14;
-  --foreground: #E2E8F0;
+  --background: #000000;
+  --foreground: #FFFFFF;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  html,
+  body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 400;
+    line-height: 1.625;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    color: #ffffff;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  button {
+    font-weight: 500;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  svg.lucide {
+    stroke-width: 1.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.42; }
+  50% { opacity: 0.65; }
 }
 
 /* Custom subtle scrollbar */
@@ -21,13 +82,12 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B101D;
+  background: #080808;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E2A47;
+  background: #27272A;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #2E406A;
+  background: #3F3F46;
 }
-

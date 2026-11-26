@@ -65,6 +65,9 @@ export function createVirtualZucchiniProvider(options?: {
           return connected ? mockAccounts.map((a) => a.address) : [];
 
         case "zcash_requestPayment": {
+          if (!connected) {
+            throw new Error("Wallet is not connected. Call connect() before requesting payment.");
+          }
           const params = args.params as { uri?: string } | undefined;
           if (!params?.uri) {
             throw new Error("Missing 'uri' parameter in zcash_requestPayment");
@@ -80,6 +83,9 @@ export function createVirtualZucchiniProvider(options?: {
         }
 
         case "sendTransaction": {
+          if (!connected) {
+            throw new Error("Wallet is not connected. Call connect() before sending a transaction.");
+          }
           const randomHex = Array.from({ length: 64 }, () =>
             Math.floor(Math.random() * 16).toString(16)
           ).join("");
@@ -152,6 +158,28 @@ export function getAvailableProvider(): {
   }
 
   return { provider: undefined, isRealExtension: false };
+}
+
+/**
+ * Wraps an asynchronous wallet RPC promise with a bounded timeout so an unresolved
+ * extension prompt never leaves UI controls stuck indefinitely.
+ */
+export async function withWalletTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs = 30000,
+  message = "Wallet request timed out waiting for approval."
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }
 
 export { discoverZucchiniProvider, createZucchiniClient };

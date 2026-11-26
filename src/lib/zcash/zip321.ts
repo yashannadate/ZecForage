@@ -166,11 +166,12 @@ export function buildZip321Uri(request: Zip321PaymentRequest): GeneratedPaymentU
  */
 export function parseZip321Uri(uri: string, expectedNetwork: ZcashNetwork = "testnet"): ParsedZip321Uri {
   const warnings: string[] = [];
-  if (!uri || !uri.startsWith("zcash:")) {
+  const trimmedUri = (uri || "").trim();
+  if (!trimmedUri || !/^zcash:/i.test(trimmedUri)) {
     throw new Error("Invalid URI: Must begin with 'zcash:'");
   }
 
-  const match = /^zcash:([A-Za-z0-9]*)(?:\?([^#]*))?$/.exec(uri);
+  const match = /^zcash:([A-Za-z0-9]*)(?:\?([^#]*))?$/i.exec(trimmedUri);
   if (!match) {
     throw new Error("Malformed ZIP-321 URI structure.");
   }
@@ -193,6 +194,11 @@ export function parseZip321Uri(uri: string, expectedNetwork: ZcashNetwork = "tes
   const addrInspection = inspectAddress(recipient, expectedNetwork);
   if (!addrInspection.isValidFormat) {
     throw new Error(`Invalid address in URI: ${addrInspection.errors[0]}`);
+  }
+  if (!addrInspection.networkMatch) {
+    throw new Error(
+      `Network mismatch in URI: address is for ${addrInspection.detectedNetwork}, expected ${expectedNetwork}.`
+    );
   }
 
   // Validate amount

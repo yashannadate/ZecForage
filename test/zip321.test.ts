@@ -134,8 +134,7 @@ describe("ZIP-321 Payment Request Builder & Parser (Zucchini 0.5.2 Subset)", () 
     const { uri } = buildZip321Uri(req);
 
     // Mock validator function matching SDK contract
-    const mockValidator = async (address: string, network: string) => ({
-      valid: true,
+    const mockValidator = async (_address: string, network: "mainnet" | "testnet") => ({
       network,
       shielded: true,
     });

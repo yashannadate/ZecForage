@@ -1,174 +1,83 @@
-# ZecForge
-### Build. Test. Verify. Shield.
+# ZecForage
 
-An open-source developer workbench for building, testing, and validating shielded Zcash merchant payment integrations before deploying to production.  
-Built for the **Zcash India Build on Zcash Bounty** (November 2026).  
-MIT Licensed.
+**Build, validate, simulate, and inspect Zcash Testnet payment integrations.**
 
----
-
-## What is ZecForge?
-
-**ZecForge is NOT another cryptocurrency wallet or a generic payment gateway.**
-
-Instead, it is an **integration workbench and developer tool** designed to help merchants, Web3 developers, and payment processors rigorously test, validate, and understand shielded Zcash checkout integrations before touching mainnet funds.
-
-Integrating shielded Zcash payments into e-commerce applications presents specific cryptographic and consensus challenges:
-1. **The Merchant Settlement Boundary Rule:** A customer wallet broadcast (`txid`) does **not** equal confirmed merchant receipt. Note decryption must occur independently via an incoming viewing key scanner on the merchant backend with canonical block confirmation accumulation.
-2. **ZIP-321 Invariants:** Payment request URIs must adhere to strict decimal limits (max 8 decimals), unpadded base64url memo encodings, and network address validation. Memos are strictly forbidden on transparent addresses.
-3. **Wallet Compatibility Realities:** Web3 desktop browser extensions (such as Zucchini via `@zucchinifi/dapp-sdk` EIP-1193 providers) and mobile wallets (such as Zodl, formerly Zashi) operate via completely different integration modalities (browser RPC vs. air-gapped QR scanning and OS-level deep-linking). Mobile wallets do not inject desktop browser providers.
-4. **Reconciliation Exceptions & Precedence:** Real-world checkouts encounter underpayments, overpayments, late arrivals, missing invoice memos, and chain reorganizations. In standard merchant accounting, **exceptions take precedence over confirmations**; an underpayment or late arrival must never silently transition to `paid` simply by accumulating blocks.
-5. **Deterministic Webhook Verification:** Merchant backends must authenticate HMAC-SHA256 status updates without accepting replayed, forged, or duplicate events.
-
-ZecForge provides a deterministic, interactive environment to test every stage of this pipeline.
+An open-source, pure-black monochrome developer workbench for designing and testing shielded Zcash merchant payment flows on **Zcash Testnet** before building production infrastructure.  
+Created for the **Zcash India Build on Zcash Bounty** (November 2026) · **MIT Licensed**.
 
 ---
 
-## Intended Users
+## What is ZecForage?
 
-- **Web3 & Full-Stack Developers:** Building e-commerce checkout plugins, donation widgets, or custom merchant payment processors for Zcash.
-- **E-Commerce Merchants:** Testing wallet handoffs and understanding the confirmation lifecycle before accepting real ZEC.
-- **Payment Gateway Integrators:** Auditing ZIP-316/ZIP-321 compliance, evaluating wallet compatibility, and testing edge-case payment scenarios (underpayments, reorgs).
+**ZecForage is a developer integration workbench — not a cryptocurrency wallet, custody service, or production payment processor.**
 
----
+Shielded Zcash checkout integrations require strict protocol boundaries and deterministic edge-case handling before any mainnet integration:
 
-## Implementation Status
+1. **Merchant Settlement Boundary Rule:** A customer wallet broadcast (`txid`) does **not** equal confirmed merchant receipt. Note decryption must occur independently on a merchant backend via an incoming viewing key (IVK) scanner with canonical block confirmation accumulation.
+2. **ZIP-321 Constraints:** Payment URIs must enforce max 8-decimal ZEC amounts (`BigInt` zatoshis), unpadded `base64url` memo encoding (`<= 512` bytes), Testnet address prefix validation, and strict rejection of shielded memos on transparent (`tm` / `t2`) addresses.
+3. **Dual Wallet Modalities:** Browser extensions (**Zucchini Wallet** via `@zucchinifi/dapp-sdk`) and mobile wallets (**Zodl**, formerly Zashi) operate differently — desktop EIP-1193 RPC injection vs. air-gapped ZIP-321 QR scanning and `zcash:` deep links on iOS/Android Testnet builds.
+4. **Exception Precedence:** Underpayments, overpayments, late post-expiry arrivals, and chain reorganizations must permanently block automated fulfillment (`canFulfill: false`) regardless of accumulated confirmation depth.
+5. **Authenticated Webhooks:** Webhook consumers must verify raw-body HMAC-SHA256 signatures in constant time (`crypto.timingSafeEqual`), enforce timestamp replay tolerances, and handle duplicate deliveries idempotently.
 
-| Module | Standard / Protocol | Status | Description |
-|---|---|:---:|---|
-| **Workbench Dashboard & Shell (`/`)** | Fintech Design System | ✅ Implemented | Deep navy fintech theme, responsive sidebar drawer, simulated testnet block counter, and 4-stage pipeline visualization. |
-| **Receiving Address Validator (`/validator`)** | ZIP-316 & Protocol Spec §5.6.3.1 | ✅ Implemented | Preliminary format check for Unified (`u1`/`utest1`), Sapling (`zs1`/`ztestsapling1`), and Transparent (`t1`/`tm`). Network mismatch detection. |
-| **Payment Request Builder (`/builder`)** | ZIP-321 (Zucchini 0.5.2 Subset) | ✅ Implemented | Canonical URI generation, 8-decimal zatoshi precision, unpadded base64url memo encoder, QR code rendering, and transparent memo rejection. |
-| **Multi-Wallet Compatibility Sandbox (`/wallets`)** | Zucchini (SDK) & Zodl (QR / Deep Link) | ✅ Implemented | Dual-target testing: browser wallet (Zucchini Dapp SDK) EIP-1193 discovery & dispatch, plus mobile air-gapped wallet (Zodl / Zashi) ZIP-321 QR generation, mobile deep-links, and 5-point manual audit recording. |
-| **Edge Case Scenario Simulator (`/scenarios`)** | Fail-Closed Reconciliation FSM | ✅ Implemented | Deterministic 8-state offline reconciliation engine simulating exact integer zatoshis (`BigInt`), `underpaid`, `overpaid`, `late_payment`, and `reorg_review` with structured audit logging. |
-| **HMAC Webhook Dispatcher (`/webhooks`)** | HMAC-SHA256 Webhooks | ✅ Implemented | Server-side signing, timestamp binding (`t={ts},v1={hex}`), 300s replay tolerance, constant-time `timingSafeEqual`, schema validation, deduplication store, and bounded retries. |
-| **Integration Audit Report (`/reports`)** | Compliance Audit & Export | ✅ Implemented | Consolidated technical audit report with PASS/WARNING/FAIL classifications, 4-tier verification matrix, and Markdown (`.md`) and JSON (`.json`) download exports. |
+ZecForage provides an isolated, **Testnet-only** browser sandbox and reference local API routes to inspect and test every stage of this workflow.
 
 ---
 
-## Core Engineering & Security Invariants
+## Verification & Simulation Matrix (Honest Status)
 
-- **Zero Key Ingestion:** ZecForge never collects, stores, or handles private spending keys or seed phrases.
-- **Fail-Closed Verification:** No payment is marked confirmed based solely on browser wallet assertions or third-party block explorer APIs.
-- **Strict Network Boundary:** Designed and isolated for Zcash Testnet.
-- **Format Validation Tier:** Preliminary format checks verify prefix, charset, and length rules. As required by protocol safety standards, ZecForge explicitly informs users that full cryptographic validity requires node/scanner verification.
-- **No Pseudo-Cryptography:** Uses standard, documented protocols (ZIP 316, ZIP 321) and `@zucchinifi/dapp-sdk` 0.2.0 integration contracts.
-- **Settlement Boundary Rule:** A valid HMAC-SHA256 signature proves that a webhook originated from the holder of the shared secret and was not tampered with in transit. **It does NOT prove that an on-chain Zcash payment took place.** Real settlement requires backend incoming viewing key note decryption.
+| Feature / Route | Classification | Scope & Notes |
+|---|---|---|
+| **Public Landing Page (`/`)** | **Verified (UI)** | Full-width black/cyan Next.js landing page with inline local previews and direct workbench entry. |
+| **Onboarding Dashboard (`/dashboard`)** | **Verified (Local Browser)** | Compact workspace, browser-local 3-step onboarding checklist, 2×2 inline developer tool launcher, real session activity log, and live extension detection. |
+| **Address Validator (`/validator`)** | **Partial (Format-Only)** | Validates Testnet prefixes (`utest1`, `ztestsapling1`, `tm`, `t2`), Bech32/Base58 character sets, lengths, and Mainnet mismatch rejection. Does **not** verify checksums or curve points. |
+| **ZIP-321 Builder (`/builder`)** | **Verified (Local)** | Generates canonical Testnet `zcash:` URIs, `BigInt` zatoshis, unpadded `base64url` memos, high-contrast QR PNGs, Copy/Download controls, and syncs latest URI to `/wallets`. |
+| **Wallet Compatibility (`/wallets`)** | **Simulated (Zucchini Virtual) / Manual (Zodl QR)** | Supports real `window.zucchini` EIP-1193 discovery plus an explicit Virtual Simulator (mock txids). Zodl iOS/Android generates Testnet QR/deep links and saves manual device verification logs locally. |
+| **Scenario Simulator (`/scenarios`)** | **Simulated (Offline FSM)** | Deterministic 8-state reconciliation engine synced with `/settings` confirmation threshold (`BigInt` zatoshi accounting). Zero blockchain node connection. |
+| **Webhook Workbench (`/webhooks` & `/api/webhooks/*`)** | **Verified (Local Loopback API)** | Server-side HMAC-SHA256 signing, constant-time verification, raw body check, `300s` replay window, `5xx` bounded retries, SSRF guard, and process-local in-memory idempotency. |
+| **Integration Audit Report (`/reports`)** | **Verified (Local)** | Aggregates unit test baseline (`111/111`), local confirmation policy, and recorded Zodl device runs into `.md` and `.json` exports. Always marks on-chain verification `NOT_VERIFIED` and `productionReady: false`. |
+| **Merchant Config Hub (`/settings`)** | **Simulated / Reference Only** | Stores local Testnet lightwalletd RPC endpoint references (`host:port` validated), syncs confirmation threshold (`1–50` blocks) to `/scenarios` & `/reports`, and provides Express, Next.js, and FastAPI HMAC receiver templates. |
 
 ---
 
-## Module Breakdown
+## Core Safety & Security Invariants
 
-### 1. Receiving Address Validator (`/validator`)
-Inspects address structural conformity against Zcash specifications:
-- **Unified Addresses (ZIP-316):** Validates `u1` (mainnet) and `utest1` (testnet) Bech32m encodings.
-- **Sapling Addresses (Protocol Spec §5.6.3.1):** Validates `zs1` (mainnet) and `ztestsapling1` (testnet) Bech32 encodings.
-- **Transparent Addresses (Protocol Spec §5.6.1.1):** Validates `t1` (mainnet) and `tm` (testnet) Base58Check encodings.
-- **Network Mismatch Detection:** Flags when a mainnet address is provided while targeting testnet, or vice-versa.
-- **Shielded Status & Memo Compatibility:** Warns immediately that transparent addresses cannot receive shielded memos.
-- *Notice:* This module performs preliminary structural and character validation. It does not perform cryptographic curve point decompression (Pallas/Jubjub) or verify UTXO/note existence.
-
-### 2. ZIP-321 Payment Request Builder (`/builder`)
-Constructs canonical payment requests adhering to the Zucchini Wallet 0.5.2 single-recipient profile:
-- **Exact Decimal Arithmetic:** Enforces maximum 8 decimal places for ZEC amounts and converts to exact integer zatoshis (`BigInt`).
-- **Base64url Memo Encoder:** Encodes UTF-8 memo text into unpadded base64url strings (max 512 bytes).
-- **Transparent Address Restriction:** Automatically disables and forbids memo input when a transparent recipient is selected.
-- **Real-Time QR Rendering:** Generates scannable high-contrast QR codes directly containing the canonical `zcash:...` URI.
-
-### 3. Multi-Wallet Compatibility Sandbox (`/wallets`)
-Provides dedicated developer test environments for two distinct wallet modalities:
-- **Zucchini Wallet (Desktop Browser Extension):**
-  - EIP-1193 provider discovery (`window.zucchini`).
-  - Permission negotiation and active account detection.
-  - Dispatch testing via `provider.request({ method: "requestPayment", params: [uri] })`.
-  - Built-in Virtual Provider simulator for deterministic testing without installing the physical extension.
-- **Zodl Wallet (Mobile / Air-Gapped):**
-  - Clarifies that mobile wallets do not inject desktop browser providers (`window.zodl` does not exist).
-  - Generates ZIP-321 QR codes and standard OS deep-links (`zcash:...`).
-  - Interactive 5-point manual verification checklist (Scanned, Address Match, Amount Match, Memo Decoded, Fee Calculated).
-  - Audit trail recording observed test runs, device platforms (iOS / Android), and transaction references.
-
-### 4. Payment Edge Case Scenario Simulator (`/scenarios`)
-A deterministic, offline 8-state finite state machine modeling real-world merchant checkout anomalies:
-- **States:** `awaiting_payment` → `detected` (0 confs) → `confirming` (1–9 confs) → `paid` (≥10 confs).
-- **Exceptions (Fail-Closed):**
-  - `underpaid`: Received amount is less than requested. Automated fulfillment is blocked (`canFulfill: false`). Accumulating confirmations will **never** silently mark an underpayment as `paid`.
-  - `overpaid`: Received amount exceeds requested. Flags for manual merchant review/refund.
-  - `late_payment`: Payment received after invoice expiry window.
-  - `reorg_review`: Blockchain reorganisation dropped confirmation depth below threshold or invalidated the block. If depth re-accumulates on the canonical chain, state recovers safely to `paid`.
-- **Configurable Confirmation Policy:** Default 10 confirmations demonstrates a deep reorg-resistance policy (a merchant risk policy, not a protocol rule).
-- **BigInt Zatoshi Arithmetic:** Zero floating-point math; all monetary amounts are calculated in exact integer zatoshis.
-
-### 5. HMAC-SHA256 Webhook Dispatcher & Receiver (`/webhooks`)
-Enterprise-grade reference webhook architecture for asynchronous status notifications:
-- **Canonical Signature Scheme:** Signs `${timestamp}.${rawBody}` using HMAC-SHA256.
-- **Header Format:** `X-ZecForge-Signature: t={unix_timestamp},v1={hex_digest}`.
-- **Replay Protection:** Timestamps are cryptographically bound to the raw body. Requests older than 300 seconds (5 minutes) or more than 5 seconds in the future are rejected before parsing.
-- **Constant-Time Verification:** Uses `crypto.timingSafeEqual` to eliminate timing side-channel attacks.
-- **Idempotency & Deduplication:** Tracks event IDs in an `IdempotencyStore`. Duplicate deliveries are acknowledged with HTTP 200 without duplicate order fulfillment.
-- **Bounded Retries:** Dispatcher retries transient server errors (HTTP 5xx) with bounded exponential backoff (max 3–5 attempts). Client errors (HTTP 4xx) fail-fast without retry.
-- **Secret Isolation:** Signing secrets are loaded exclusively on the server (`.env.example`) and never exposed to client bundles or responses.
-
-### 6. Integration Audit Report (`/reports`)
-A consolidated technical readiness report evaluating all workbench modules:
-- **Classifications:** Explicitly categorizes checks into **PASS**, **WARNING**, and **FAIL** (no arbitrary numerical readiness score; does not claim pre-production code is "production ready").
-- **4-Tier Verification Matrix:**
-  1. *Automated Unit Tests:* Verified passing via Vitest (80 tests).
-  2. *Simulator Engines:* Verified deterministic offline state machines.
-  3. *Manual Device Verification:* Verified via user-recorded physical device checklists.
-  4. *On-Chain Verification:* Marked **NOT VERIFIED** (requires future backend scanning node).
-- **Export Capabilities:** One-click download of structured Markdown (`.md`) and JSON (`.json`) audit reports.
-- **Sanitized Outputs:** Certifies that zero private keys, viewing keys, or webhook secrets are included in report data or exports.
+- **Testnet-Only Workbench:** All UI address validators, URI builders, wallet dispatch guards, and RPC preset lists are scoped exclusively to Zcash Testnet.
+- **Zero Private Key Ingestion:** Never collects, stores, or logs spending keys, seed phrases, or viewing keys.
+- **Honest Local State:** Onboarding checklists, settings, and activity logs persist strictly in browser `localStorage` and are never sent to external third parties. Never fabricates balances or on-chain confirmations.
+- **Server-Only Webhook Secret:** `ZECFORGE_WEBHOOK_SECRET` is accessed solely in Next.js server routes and never exposed to client bundles, logs, or exported reports.
 
 ---
 
 ## Architecture Overview
 
-```
-[Customer Browser / Checkout UI]
-       │ (1) Canonical ZIP-321 Payment Request (Unsigned / Memo-bound)
+```text
+[Developer / Checkout UI] (/dashboard, /builder)
+       │ (1) Canonical Testnet ZIP-321 Request (Amount + Base64url Memo)
        ▼
-[Wallet: Zucchini (Extension) or Zodl (Mobile QR)]
-       │ (2) Customer Reviews Recipient, Amount & Memo, Signs & Broadcasts
+[Wallet Sandbox] (/wallets)
+       ├── Browser: @zucchinifi/dapp-sdk (window.zucchini or Virtual Simulator)
+       └── Mobile:  Zodl iOS / Android Testnet QR & zcash: Deep Link
+       │ (2) Customer Signs & Broadcasts (or Virtual Simulator emits mock txid)
        ▼
-[Zcash Testnet Network] (Halo 2 / Orchard Pool)
-       │
-       ▼ (3) Compact Block Scanning & Note Decryption (Backend Scanner)
-[Merchant Viewing-Only Scanner] (Backend Isolated)
-       │ (4) Accumulate 10 Confirmations (`canFulfill: true`)
+[Scenario State Machine] (/scenarios — Offline Simulation)
+       │ (3) Validates Exact Amount, Expiry Window & Confirmation Policy (default 10 blocks)
        ▼
-[Merchant Backend Listener] ── HMAC-SHA256 Webhook Verification ── Order Fulfilled
+[HMAC-SHA256 Webhook Loopback] (/api/webhooks/dispatch -> /api/webhooks/receiver)
+       │ (4) Verifies t={unix_s},v1={hex} over "${ts}.${rawBody}" with timingSafeEqual
+       ▼
+[Compliance Audit Export] (/reports -> .md / .json)
 ```
 
 ---
 
 ## Tech Stack
 
-- **Framework:** Next.js 14 (App Router)
-- **Language:** TypeScript 5 (Strict Mode, Target: ES2022)
-- **Styling:** Tailwind CSS (Deep navy `#080C14`, elevated surfaces `#0F1626` / `#151F36`, violet `#7C3AED`, emerald `#10B981`)
-- **Icons:** Lucide React (featuring `Anvil` wordmark icon)
-- **Validation:** Zod
-- **QR Generation:** `qrcode`
-- **Zcash Integration:** `@zucchinifi/dapp-sdk` 0.2.0
-- **Testing:** Vitest (80 unit tests)
-
----
-
-## Environment Variables
-
-Copy `.env.example` to `.env` or `.env.local` to configure server-side settings:
-
-```bash
-cp .env.example .env.local
-```
-
-| Variable | Description | Default / Example |
-|---|---|---|
-| `ZECFORGE_WEBHOOK_SECRET` | Server-side secret key for HMAC-SHA256 webhook signing. | `your_32_byte_hex_secret_here` |
-| `ZECFORGE_CONFIRMATION_THRESHOLD` | Default block confirmation threshold for scenario simulation. | `10` |
-
-*Security Notice:* `ZECFORGE_WEBHOOK_SECRET` is never prefixed with `NEXT_PUBLIC_` and is never exposed to browser bundles or client-side code.
+- **Framework:** Next.js 14 (App Router with `(marketing)` and `(workbench)` route groups)
+- **Language:** TypeScript 5 (`strict: true`)
+- **Styling & Typography:** Tailwind CSS 3 (`#000000` canvas, `#080808` cards, `#262626` borders, `#35C9E8` cyan accent), Geist & Geist Mono fonts
+- **Icons:** Lucide React (`16–20px`, `1.5px` stroke width)
+- **Validation & Zcash SDK:** Zod, `qrcode`, `@zucchinifi/dapp-sdk` `0.2.0`
+- **Testing & Linting:** Vitest (`111` unit tests across `8` suites), ESLint (`next/core-web-vitals`)
 
 ---
 
@@ -176,10 +85,10 @@ cp .env.example .env.local
 
 ### Prerequisites
 
-- Node.js `>= 22` (tested on Node v24.12.0)
-- npm or pnpm
+- **Node.js** `>= 20` (tested on Node `v22` / `v24`)
+- **npm**
 
-### Installation
+### 1. Installation
 
 ```bash
 git clone https://github.com/yashannadate/ZecForage.git
@@ -187,48 +96,67 @@ cd ZecForage
 npm install
 ```
 
-### Running the Development Server
+### 2. Environment Setup
+
+Copy the example environment file for server-side webhook signing:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Description | Default |
+|---|---|---|
+| `ZECFORGE_WEBHOOK_SECRET` | Server-side HMAC-SHA256 webhook signing secret (32+ byte hex recommended). Never prefix with `NEXT_PUBLIC_`. | Development fallback secret when unset |
+| `ZECFORGE_CONFIRMATION_THRESHOLD` | Reference confirmation threshold documented for backend templates. | `10` |
+
+### 3. Run Locally
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) to view the landing page, or [http://localhost:3000/dashboard](http://localhost:3000/dashboard) to open the Developer Onboarding Workbench.
 
-### Running Automated Tests
+### 4. Verification Commands
 
-```bash
-npm run test
-```
-
-Executes the complete Vitest automated test suite covering all 7 test files (80 passing tests):
-- `test/addresses.test.ts` (9 tests)
-- `test/zip321.test.ts` (11 tests)
-- `test/wallet.test.ts` (6 tests)
-- `test/zodl.test.ts` (8 tests)
-- `test/scenarios.test.ts` (11 tests)
-- `test/webhooks.test.ts` (26 tests)
-- `test/reports.test.ts` (9 tests)
-
-### Building for Production
+Run automated tests, ESLint, production build, and TypeScript checks:
 
 ```bash
+# Run all 111 Vitest unit tests across 8 test suites
+npm test
+
+# Lint codebase
+npm run lint
+
+# Build production bundle (12 App Router routes)
 npm run build
-npm run start
+
+# Strict TypeScript check
+npx tsc --noEmit
 ```
+
+**Automated Test Suites (`test/`):**
+- `test/addresses.test.ts` (9 tests) — Prefix, charset, whitespace, transparent/sprout warnings, network mismatch
+- `test/zip321.test.ts` (11 tests) — Zatoshi `BigInt` precision, 512B base64url memos, SDK round-trip & network mismatch
+- `test/wallet.test.ts` (6 tests) — Virtual Zucchini EIP-1193 provider contract, connect, requestPayment, disconnect
+- `test/zodl.test.ts` (8 tests) — Zodl QR/deep-link parameter construction & manual audit record builder
+- `test/scenarios.test.ts` (11 tests) — 8-state FSM, sticky exception precedence, reorg drop/recovery, reset
+- `test/webhooks.test.ts` (26 tests) — HMAC-SHA256 signing, tamper detection, replay window, idempotency, retries
+- `test/reports.test.ts` (9 tests) — Audit report tier classification, JSON/Markdown exports, secret exclusion
+- `test/settings.test.ts` (31 tests) — Confirmation risk policy, RPC presets, Express/Next.js/FastAPI templates
 
 ---
 
-## Current Technical Limitations & Roadmap
+## Known Limitations
 
-1. **No Live Blockchain Scanner:** Decrypting incoming shielded notes with an incoming viewing key (IVK) requires a backend lightwalletd or compact block scanner service. This is not implemented in the current workbench and must be built before live mainnet settlement.
-2. **Preliminary Address Validation:** The address validator checks structural prefixes, character sets (Bech32m / Base58Check), and length bounds. Full cryptographic curve point decompression (Pallas/Jubjub) requires native cryptographic libraries.
-3. **In-Memory Idempotency Store:** The reference webhook receiver deduplication store is in-memory and process-local. In production, backends must use Redis or PostgreSQL unique constraints on `event_id`.
-4. **Demonstration Confirmation Threshold:** The default 10-confirmation policy is a configurable merchant demonstration policy against deep reorgs, not a universal Zcash protocol rule.
-5. **ZIP-321 Subset:** The current builder implements single-recipient payments conforming to the Zucchini profile. Multi-recipient requests (`?address.1=...`) are not implemented in the current subset.
+1. **No Live Blockchain / Lightwalletd Scanner:** ZecForage does not yet connect to `lightwalletd` gRPC endpoints or perform incoming viewing key (IVK) trial decryption on compact blocks.
+2. **Structural Address Checks Only:** Prefix, length, and Bech32/Base58 character checks run client-side; polynomial checksum verification and Pallas/Jubjub curve decompression require native Zcash cryptography.
+3. **Single-Recipient ZIP-321 Subset:** Multi-recipient indexed parameters (`?address.1=...`) are rejected per the Zucchini 0.5.2 single-recipient profile.
+4. **In-Memory Server Deduplication:** `/api/webhooks/receiver` uses a process-local `InMemoryIdempotencyStore` (not persisted across server restarts; use Redis or SQL unique constraints in production).
+5. **Simulated Wallet & Testnet-Only Defaults:** Virtual Zucchini mode returns mock 64-char hex transaction IDs; real wallet signing requires the Zucchini browser extension on Testnet or a Zodl iOS/Android Testnet developer build.
 
 ---
 
 ## License
 
-MIT © 2026 ZecForge Contributors
+Released under the [MIT License](LICENSE).

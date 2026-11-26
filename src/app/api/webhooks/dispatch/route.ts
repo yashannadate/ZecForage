@@ -4,6 +4,7 @@ import {
   getServerWebhookSecret,
   dispatchWebhookWithRetries,
   WebhookEventPayload,
+  WebhookEventPayloadSchema,
 } from "@/lib/zcash/webhooks";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,38 @@ export interface DispatchRequestBody {
   targetUrl: string;
   tamperMode?: "none" | "invalid_signature" | "tampered_body" | "expired_timestamp" | "duplicate" | "simulate_500";
   maxRetries?: number;
+}
+
+function resolveSafeDestinationUrl(targetUrl: string, origin: string): { ok: true; url: string } | { ok: false; error: string } {
+  const trimmed = targetUrl.trim();
+  if (!trimmed) {
+    return { ok: false, error: "Target receiver URL cannot be empty." };
+  }
+  if (trimmed.startsWith("/")) {
+    if (trimmed.startsWith("//")) {
+      return { ok: false, error: "Protocol-relative target URLs are not permitted." };
+    }
+    return { ok: true, url: `${origin}${trimmed}` };
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { ok: false, error: "Malformed target receiver URL. Use a relative path like /api/webhooks/receiver or an http(s) URL." };
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return { ok: false, error: `Unsupported URL protocol '${parsed.protocol}'. Only http: and https: are allowed.` };
+  }
+
+  // Block link-local / cloud metadata SSRF ranges
+  const host = parsed.hostname.toLowerCase();
+  if (host === "169.254.169.254" || host.startsWith("169.254.") || host === "metadata.google.internal") {
+    return { ok: false, error: "Target host is blocked by SSRF safety policy." };
+  }
+
+  return { ok: true, url: parsed.toString() };
 }
 
 export async function POST(req: NextRequest) {
@@ -32,8 +65,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const parsedPayload = WebhookEventPayloadSchema.safeParse(payload);
+  if (!parsedPayload.success) {
+    return NextResponse.json(
+      { error: "Invalid webhook event payload schema", details: parsedPayload.error.issues },
+      { status: 400 }
+    );
+  }
+
+  const resolvedUrl = resolveSafeDestinationUrl(targetUrl, req.nextUrl.origin);
+  if (!resolvedUrl.ok) {
+    return NextResponse.json({ error: resolvedUrl.error }, { status: 400 });
+  }
+
   const secret = getServerWebhookSecret();
-  const rawBody = JSON.stringify(payload);
+  const rawBody = JSON.stringify(parsedPayload.data);
 
   // Determine timestamp and signature based on tamper mode
   const now = Math.floor(Date.now() / 1000);
@@ -58,12 +104,7 @@ export async function POST(req: NextRequest) {
     bodyToSend = JSON.stringify(tampered);
   }
 
-  // Handle URL resolution for relative paths (e.g. "/api/webhooks/receiver")
-  let destinationUrl = targetUrl;
-  if (targetUrl.startsWith("/")) {
-    const origin = req.nextUrl.origin;
-    destinationUrl = `${origin}${targetUrl}`;
-  }
+  const destinationUrl = resolvedUrl.url;
 
   // If simulate_500 mode, we pass a custom header through our fetch
   const customFetch: typeof fetch = (input, init) => {

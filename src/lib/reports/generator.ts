@@ -15,9 +15,11 @@ import {
 export interface ReportCustomInput {
   addressTested?: string;
   expectedNetwork?: "testnet" | "mainnet";
+  generatedAtOverride?: number;
   scenarioState?: {
     currentState?: string;
     confirmations?: number;
+    requiredConfirmations?: number;
     canFulfill?: boolean;
   };
   zodlTestRun?: {
@@ -40,7 +42,7 @@ export interface ReportCustomInput {
 export function generateIntegrationReport(
   custom?: ReportCustomInput
 ): IntegrationAuditReport {
-  const now = Date.now();
+  const now = custom?.generatedAtOverride ?? Date.now();
   const isoTime = new Date(now).toISOString();
 
   // 1. Address Validation Evaluation
@@ -124,7 +126,7 @@ export function generateIntegrationReport(
   const zodlManualStatus = custom?.zodlTestRun?.result ? custom.zodlTestRun.result : "pending";
 
   const zodlAudit: ZodlWalletAudit = {
-    status: zodlManualStatus === "passed" ? "PASS" : "WARNING",
+    status: zodlManualStatus === "passed" ? "PASS" : zodlManualStatus === "failed" || zodlManualStatus === "parameter_rejected" ? "FAIL" : "WARNING",
     tier: "manual_device_verified",
     standard: "ZIP-321 Air-Gapped QR & Deep-Linking",
     walletName: ZODL_PROFILE.name,
@@ -140,6 +142,11 @@ export function generateIntegrationReport(
   };
 
   // 4. Payment Scenario Engine Evaluation
+  const requiredConfs = custom?.scenarioState?.requiredConfirmations ?? 10;
+  const scenarioConfirmations = custom?.scenarioState?.confirmations ?? requiredConfs;
+  const scenarioState = (custom?.scenarioState?.currentState as PaymentScenarioAudit["currentState"]) || "paid";
+  const scenarioCanFulfill = custom?.scenarioState?.canFulfill ?? (scenarioState === "paid");
+
   const scenarioAudit: PaymentScenarioAudit = {
     status: "PASS",
     tier: "simulated",
@@ -155,10 +162,10 @@ export function generateIntegrationReport(
     ],
     invoiceAmountZEC: "0.05000000",
     receivedAmountZEC: "0.05000000",
-    confirmations: 10,
-    requiredConfirmations: 10,
-    currentState: "paid",
-    canFulfill: true,
+    confirmations: scenarioConfirmations,
+    requiredConfirmations: requiredConfs,
+    currentState: scenarioState,
+    canFulfill: scenarioCanFulfill,
     arithmeticPrecision:
       "Exact integer zatoshis via BigInt (1 ZEC = 100,000,000 zatoshis). Zero floating-point rounding errors.",
     exceptionPrecedenceEnforced: true,
@@ -196,7 +203,22 @@ export function generateIntegrationReport(
     scenarioAudit.status === "PASS",
     webhookAudit.status === "PASS",
   ].filter(Boolean).length;
-  const warningChecks = totalChecks - passedChecks;
+  const warningChecks = [
+    addressAudit.status,
+    zip321Audit.status,
+    zucchiniAudit.status,
+    zodlAudit.status,
+    scenarioAudit.status,
+    webhookAudit.status,
+  ].filter((s) => s === "WARNING").length;
+  const failedChecks = [
+    addressAudit.status,
+    zip321Audit.status,
+    zucchiniAudit.status,
+    zodlAudit.status,
+    scenarioAudit.status,
+    webhookAudit.status,
+  ].filter((s) => s === "FAIL").length;
 
   const overall: OverallReadinessSummary = {
     overallStatus: "WARNING", // Never PASS because real on-chain scanning is not implemented
@@ -208,12 +230,12 @@ export function generateIntegrationReport(
       total: totalChecks,
       passed: passedChecks,
       warnings: warningChecks,
-      failed: 0,
+      failed: failedChecks,
     },
     tierBreakdown: {
       automatedTests: "PASS",
       simulatorWorkflows: "PASS",
-      manualDeviceVerification: zodlAudit.status === "PASS" ? "PASS" : "WARNING",
+      manualDeviceVerification: zodlAudit.status,
       onChainVerification: "NOT_VERIFIED",
     },
     criticalNotice:

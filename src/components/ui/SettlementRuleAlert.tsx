@@ -20,21 +20,19 @@ export function SettlementRuleAlert({
   return (
     <div
       className={cn(
-        "rounded-xl border p-4 flex items-start gap-3.5 text-xs transition-colors",
-        isWarning
-          ? "border-amber-900/60 bg-amber-950/20 text-amber-200"
-          : "border-primary-900/50 bg-gradient-to-r from-primary-950/30 via-surface to-surface-elevated text-slate-300",
+        "rounded-xl border border-neutral-800 bg-[#080808] p-4 sm:p-5 flex items-start gap-3.5 text-xs text-neutral-300 transition-colors",
+        isWarning && "border-amber-900/40 bg-amber-950/10",
         className
       )}
     >
       {isWarning ? (
         <ShieldAlert className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
       ) : (
-        <Info className="w-5 h-5 text-primary-400 shrink-0 mt-0.5" />
+        <span className="h-2 w-2 rounded-full bg-cyan-300 shrink-0 mt-1 animate-pulse" />
       )}
-      <div className="space-y-1 leading-relaxed">
-        <h3 className="font-semibold text-slate-200">{title}</h3>
-        <p className="text-slate-400">{description}</p>
+      <div className="space-y-1">
+        <h3 className="font-medium tracking-tight text-white text-sm">{title}</h3>
+        <p className="text-[#929292] font-normal leading-relaxed text-sm">{description}</p>
       </div>
     </div>
   );

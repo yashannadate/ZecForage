@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AppShell } from "@/components/layout/AppShell";
 
 export const metadata: Metadata = {
-  title: "ZecForge — Developer Workbench for Shielded Zcash Payments",
-  description: "ZecForge: Build. Test. Verify. Shield. Open-source developer workbench for building, testing, and validating shielded Zcash merchant payment integrations.",
+  title: "ZecForge — Developer Infrastructure for Shielded Zcash Payments",
+  description: "ZecForge: Build, validate, simulate, and integrate shielded Zcash payment workflows with developer-first tools for merchants and applications.",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -13,11 +15,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-background text-slate-100 antialiased selection:bg-primary-500/30 selection:text-primary-200">
-        <AppShell>{children}</AppShell>
+    <html lang="en" className="dark scroll-smooth">
+      <body className="bg-black text-white antialiased selection:bg-cyan-900 selection:text-white">
+        {children}
       </body>
     </html>
   );
 }
-
