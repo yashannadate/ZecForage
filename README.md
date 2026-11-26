@@ -14,10 +14,8 @@
 </div>
 
 <p align="center">
-  ZecForage is an open-source, pure-black Testnet-only browser sandbox for designing, validating, simulating, and verifying Zcash merchant payment flows before building production infrastructure. Build ZIP-321 payment requests, test wallet handoffs, replay edge-case settlement scenarios, and verify HMAC-signed webhook delivery — all locally, all honestly labelled.
+  ZecForage is an open-source Testnet-only developer workbench for designing, validating, simulating, and verifying Zcash merchant payment flows before building production infrastructure. Build ZIP-321 payment requests, test wallet handoffs, replay edge-case settlement scenarios, and verify HMAC-signed webhook delivery — all locally, all honestly labelled.
   <br /><br />
-  <a href="https://github.com/yashannadate/ZecForage"><strong>⭐ Star on GitHub</strong></a>
-  &nbsp;·&nbsp;
   <a href="#-getting-started"><strong>🚀 Quick Start</strong></a>
   &nbsp;·&nbsp;
   <a href="#-architecture--call-flow"><strong>🏗 Architecture</strong></a>
