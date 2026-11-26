@@ -21,6 +21,8 @@
   <br /><br />
   <a href="https://zecforage.vercel.app"><strong>🔴 Live Demo</strong></a>
   &nbsp;·&nbsp;
+  <a href="https://bit.ly/3VT0aiC"><strong>🎥 ZecForage Demo</strong></a>
+  &nbsp;·&nbsp;
   <a href="#-application-interface"><strong>📸 Screenshots</strong></a>
   &nbsp;·&nbsp;
   <a href="#-getting-started"><strong>🚀 Quick Start</strong></a>
@@ -335,7 +337,9 @@ ZecForage was built for the **Zcash India Build on Zcash Bounty (November 2026)*
 
 | Requirement | Status |
 |---|---|
-| ✅ Public GitHub Repository | Done |
+| ✅ Public GitHub Repository | Done — [github.com/yashannadate/ZecForage](https://github.com/yashannadate/ZecForage) |
+| ✅ Live Production Deployment | Done — [zecforage.vercel.app](https://zecforage.vercel.app) |
+| ✅ Demo Video | Done — [ZecForage Demo](https://bit.ly/3VT0aiC) |
 | ✅ MIT License | Done — see [`LICENSE`](./LICENSE) |
 | ✅ README with problem, features, architecture, setup | Done |
 | ✅ Honest simulation vs. verification labelling | Done — in UI, README, and audit reports |
