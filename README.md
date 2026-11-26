@@ -16,6 +16,8 @@
 <p align="center">
   ZecForage is an open-source Testnet-only developer workbench for designing, validating, simulating, and verifying Zcash merchant payment flows before building production infrastructure. Build ZIP-321 payment requests, test wallet handoffs, replay edge-case settlement scenarios, and verify HMAC-signed webhook delivery — all locally, all honestly labelled.
   <br /><br />
+  <a href="#-application-interface"><strong>📸 Screenshots</strong></a>
+  &nbsp;·&nbsp;
   <a href="#-getting-started"><strong>🚀 Quick Start</strong></a>
   &nbsp;·&nbsp;
   <a href="#-architecture--call-flow"><strong>🏗 Architecture</strong></a>
@@ -52,6 +54,23 @@ ZecForage provides an isolated, **Testnet-only** browser sandbox and reference l
 | 🔔 **Webhook Workbench (`/webhooks` & `/api/webhooks/*`)** | ✅ Verified (Local Loopback API) | Server-side HMAC-SHA256 signing, constant-time verification, raw body check, `300s` replay window, `5xx` bounded retries, SSRF guard, and process-local in-memory idempotency. |
 | 📊 **Integration Audit Report (`/reports`)** | ✅ Verified (Local) | Aggregates unit test baseline (`111/111`), local confirmation policy, and recorded Zodl device runs into `.md` and `.json` exports. Always marks on-chain verification `NOT_VERIFIED` and `productionReady: false`. |
 | ⚙️ **Merchant Config Hub (`/settings`)** | 🔵 Simulated / Reference Only | Stores local Testnet lightwalletd RPC endpoint references (`host:port` validated), syncs confirmation threshold (`1–50` blocks) to `/scenarios` & `/reports`, and provides Express, Next.js, and FastAPI HMAC receiver templates. |
+
+---
+
+## 📸 Application Interface
+
+| Landing Page | Developer Onboarding Dashboard |
+| :---: | :---: |
+| <img src="./public/screenshots/landing.png" width="450" alt="Landing Page" /> | <img src="./public/screenshots/workbench.png" width="450" alt="Developer Workbench" /> |
+| **ZIP-321 Payment Request Builder** | **Wallet Compatibility Sandbox (Zucchini & Zodl)** |
+| <img src="./public/screenshots/ZIP.png" width="450" alt="ZIP-321 Payment Builder" /> | <img src="./public/screenshots/wallet-compatiblility.png" width="450" alt="Wallet Compatibility Sandbox" /> |
+
+<div align="center">
+  <br />
+  <strong>HMAC-SHA256 Webhook Workbench & Replay Verification</strong>
+  <br /><br />
+  <img src="./public/screenshots/webhook.png" width="920" alt="Webhook Workbench" />
+</div>
 
 ---
 
@@ -235,7 +254,13 @@ ZecForage/
 ├── tailwind.config.ts                        # Tailwind CSS v3 config
 ├── public/
 │   ├── favicon.png                           # Favicon icon
-│   └── logo.png                              # ZecForage official logo
+│   ├── logo.png                              # ZecForage official logo
+│   └── screenshots/                          # Application interface screenshots
+│       ├── landing.png
+│       ├── workbench.png
+│       ├── ZIP.png
+│       ├── wallet-compatiblility.png
+│       └── webhook.png
 ├── src/
 │   ├── app/
 │   │   ├── (marketing)/                      # Public landing page route group
@@ -311,6 +336,7 @@ ZecForage was built for the **Zcash India Build on Zcash Bounty (November 2026)*
 | ✅ Honest simulation vs. verification labelling | Done — in UI, README, and audit reports |
 | ✅ Testnet-Only scope | Done — all modules locked to Zcash Testnet |
 | ✅ 111/111 unit tests passing | Done |
+| ✅ Application Screenshots | Done — 5 interface screenshots included |
 | ✅ No API keys or secrets in repository | Done — `.env.example` has placeholder only |
 
 ---
