@@ -59,18 +59,18 @@ ZecForage provides an isolated, **Testnet-only** browser sandbox and reference l
 
 ## 📸 Application Interface
 
-| Landing Page | Developer Onboarding Dashboard |
-| :---: | :---: |
-| <img src="./public/screenshots/landing.png" width="450" alt="Landing Page" /> | <img src="./public/screenshots/workbench.png" width="450" alt="Developer Workbench" /> |
-| **ZIP-321 Payment Request Builder** | **Wallet Compatibility Sandbox (Zucchini & Zodl)** |
-| <img src="./public/screenshots/ZIP.png" width="450" alt="ZIP-321 Payment Builder" /> | <img src="./public/screenshots/wallet-compatiblility.png" width="450" alt="Wallet Compatibility Sandbox" /> |
-
 <div align="center">
-  <br />
-  <strong>HMAC-SHA256 Webhook Workbench & Replay Verification</strong>
+  <strong>Landing Page & Interactive Overview</strong>
   <br /><br />
-  <img src="./public/screenshots/webhook.png" width="920" alt="Webhook Workbench" />
+  <img src="./public/screenshots/landing.png" width="920" alt="ZecForage Landing Page" />
+  <br /><br />
 </div>
+
+| Developer Onboarding Dashboard | ZIP-321 Payment Request Builder |
+| :---: | :---: |
+| <img src="./public/screenshots/workbench.png" width="450" alt="Developer Onboarding Dashboard" /> | <img src="./public/screenshots/ZIP.png" width="450" alt="ZIP-321 Payment Builder" /> |
+| **Wallet Compatibility (Zucchini & Zodl)** | **HMAC-SHA256 Webhook Workbench** |
+| <img src="./public/screenshots/wallet-compatiblility.png" width="450" alt="Wallet Compatibility Sandbox" /> | <img src="./public/screenshots/webhook.png" width="450" alt="Webhook Workbench" /> |
 
 ---
 
@@ -336,7 +336,6 @@ ZecForage was built for the **Zcash India Build on Zcash Bounty (November 2026)*
 | ✅ Honest simulation vs. verification labelling | Done — in UI, README, and audit reports |
 | ✅ Testnet-Only scope | Done — all modules locked to Zcash Testnet |
 | ✅ 122/122 unit tests passing | Done |
-| ✅ Application Screenshots | Done — 5 interface screenshots included |
 | ✅ Application Screenshots | Done — 5 interface screenshots included |
 | ✅ No API keys or secrets in repository | Done — `.env.example` has placeholder only |
 
