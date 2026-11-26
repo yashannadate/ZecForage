@@ -3,11 +3,19 @@ import { z } from "zod";
 export type ZcashNetwork = "mainnet" | "testnet";
 export type ZcashAddressType = "unified" | "sapling" | "transparent" | "sprout" | "unknown";
 
+export type AddressClassification =
+  | "valid_testnet"
+  | "valid_mainnet"
+  | "invalid_structure"
+  | "unsupported_prefix"
+  | "empty";
+
 export interface AddressInspection {
   raw: string;
   trimmed: string;
   hasWhitespace: boolean;
   isValidFormat: boolean;
+  classification: AddressClassification;
   addressType: ZcashAddressType;
   detectedNetwork: ZcashNetwork | "unknown";
   networkMatch: boolean;
@@ -31,7 +39,7 @@ const BASE58_CHARSET_REGEX = /^[1-9A-HJ-NP-Za-km-z]+$/;
  * polynomial checksum verification (which requires native Zcash cryptography).
  */
 export function inspectAddress(input: string, expectedNetwork: ZcashNetwork = "testnet"): AddressInspection {
-  const trimmed = input.trim();
+  const trimmed = input ? input.trim() : "";
   const hasWhitespace = input !== trimmed || /\s/.test(input);
 
   const inspection: AddressInspection = {
@@ -39,6 +47,7 @@ export function inspectAddress(input: string, expectedNetwork: ZcashNetwork = "t
     trimmed,
     hasWhitespace,
     isValidFormat: false,
+    classification: "unsupported_prefix",
     addressType: "unknown",
     detectedNetwork: "unknown",
     networkMatch: false,
@@ -48,7 +57,8 @@ export function inspectAddress(input: string, expectedNetwork: ZcashNetwork = "t
     errors: [],
   };
 
-  if (!input || input.length === 0) {
+  if (!input || input.length === 0 || trimmed.length === 0) {
+    inspection.classification = "empty";
     inspection.errors.push("Address cannot be empty.");
     return inspection;
   }
@@ -57,81 +67,106 @@ export function inspectAddress(input: string, expectedNetwork: ZcashNetwork = "t
     inspection.warnings.push("Input contains leading, trailing, or internal whitespace that was trimmed.");
   }
 
-  if (trimmed.length < 30) {
-    inspection.errors.push("Address is too short to be a valid Zcash address.");
-    return inspection;
-  }
-
   // 1. Unified Addresses (ZIP 316)
-  // Mainnet prefix: u1, Testnet prefix: utest1
+  // Testnet prefix: utest1, Mainnet prefix: u1
   if (trimmed.startsWith("utest1")) {
     inspection.addressType = "unified";
     inspection.detectedNetwork = "testnet";
     const dataPart = trimmed.slice("utest1".length);
-    if (dataPart.length > 0 && BECH32_CHARSET_REGEX.test(dataPart)) {
+    if (trimmed.length < 50) {
+      inspection.classification = "invalid_structure";
+      inspection.errors.push(`Unified Testnet address is too short (${trimmed.length} chars). A valid Unified address must be at least 50 characters.`);
+    } else if (dataPart.length > 0 && BECH32_CHARSET_REGEX.test(dataPart)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_testnet";
       inspection.isShielded = true;
     } else {
-      inspection.errors.push("Invalid Bech32m characters in Unified Testnet address.");
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Bech32m characters in Unified Testnet address (Bech32m excludes '1', 'b', 'i', 'o').");
     }
   } else if (trimmed.startsWith("u1")) {
     inspection.addressType = "unified";
     inspection.detectedNetwork = "mainnet";
     const dataPart = trimmed.slice("u1".length);
-    if (dataPart.length > 0 && BECH32_CHARSET_REGEX.test(dataPart)) {
+    if (trimmed.length < 50) {
+      inspection.classification = "invalid_structure";
+      inspection.errors.push(`Unified Mainnet address is too short (${trimmed.length} chars). A valid Unified address must be at least 50 characters.`);
+    } else if (dataPart.length > 0 && BECH32_CHARSET_REGEX.test(dataPart)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_mainnet";
       inspection.isShielded = true;
     } else {
-      inspection.errors.push("Invalid Bech32m characters in Unified Mainnet address.");
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Bech32m characters in Unified Mainnet address (Bech32m excludes '1', 'b', 'i', 'o').");
     }
   }
 
   // 2. Sapling Addresses (ZIP 32)
-  // Mainnet prefix: zs1 (78 chars total), Testnet prefix: ztestsapling1 (88 chars total)
+  // Testnet prefix: ztestsapling1 (88 chars total), Mainnet prefix: zs1 (78 chars total)
   else if (trimmed.startsWith("ztestsapling1")) {
     inspection.addressType = "sapling";
     inspection.detectedNetwork = "testnet";
     const dataPart = trimmed.slice("ztestsapling1".length);
-    if (trimmed.length === 88 && BECH32_CHARSET_REGEX.test(dataPart)) {
+    if (trimmed.length !== 88) {
+      inspection.classification = "invalid_structure";
+      inspection.errors.push(`Invalid Sapling testnet address structure (expected 88 chars Bech32, got ${trimmed.length}).`);
+    } else if (BECH32_CHARSET_REGEX.test(dataPart)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_testnet";
       inspection.isShielded = true;
     } else {
-      inspection.errors.push(`Invalid Sapling testnet address structure (expected 88 chars Bech32, got ${trimmed.length}).`);
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Bech32 characters in Sapling Testnet address.");
     }
   } else if (trimmed.startsWith("zs1")) {
     inspection.addressType = "sapling";
     inspection.detectedNetwork = "mainnet";
     const dataPart = trimmed.slice("zs1".length);
-    if (trimmed.length === 78 && BECH32_CHARSET_REGEX.test(dataPart)) {
+    if (trimmed.length !== 78) {
+      inspection.classification = "invalid_structure";
+      inspection.errors.push(`Invalid Sapling mainnet address structure (expected 78 chars Bech32, got ${trimmed.length}).`);
+    } else if (BECH32_CHARSET_REGEX.test(dataPart)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_mainnet";
       inspection.isShielded = true;
     } else {
-      inspection.errors.push(`Invalid Sapling mainnet address structure (expected 78 chars Bech32, got ${trimmed.length}).`);
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Bech32 characters in Sapling Mainnet address.");
     }
   }
 
   // 3. Transparent Addresses (Base58Check)
-  // Mainnet: t1 (P2PKH, 35 chars), t3 (P2SH, 35 chars)
   // Testnet: tm (P2PKH, 35 chars), t2 (P2SH, 35 chars)
+  // Mainnet: t1 (P2PKH, 35 chars), t3 (P2SH, 35 chars)
   else if (trimmed.startsWith("tm") || trimmed.startsWith("t2")) {
     inspection.addressType = "transparent";
     inspection.detectedNetwork = "testnet";
-    if (trimmed.length === 35 && BASE58_CHARSET_REGEX.test(trimmed)) {
+    if (trimmed.length !== 35) {
+      inspection.classification = "invalid_structure";
+      inspection.errors.push(`Invalid Transparent testnet address format (expected 35 Base58 characters, got ${trimmed.length}).`);
+    } else if (BASE58_CHARSET_REGEX.test(trimmed)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_testnet";
       inspection.isShielded = false;
       inspection.warnings.push("Transparent address (unshielded): transactions will expose public balances and cannot receive ZIP-321 memos.");
     } else {
-      inspection.errors.push(`Invalid Transparent testnet address format (expected 35 Base58 characters, got ${trimmed.length}).`);
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Base58 characters in Transparent Testnet address (Base58 excludes '0', 'O', 'I', 'l').");
     }
   } else if (trimmed.startsWith("t1") || trimmed.startsWith("t3")) {
     inspection.addressType = "transparent";
     inspection.detectedNetwork = "mainnet";
-    if (trimmed.length === 35 && BASE58_CHARSET_REGEX.test(trimmed)) {
+    if (trimmed.length !== 35) {
+      inspection.classification = "invalid_structure";
+      inspection.errors.push(`Invalid Transparent mainnet address format (expected 35 Base58 characters, got ${trimmed.length}).`);
+    } else if (BASE58_CHARSET_REGEX.test(trimmed)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_mainnet";
       inspection.isShielded = false;
       inspection.warnings.push("Transparent address (unshielded): transactions will expose public balances and cannot receive ZIP-321 memos.");
     } else {
-      inspection.errors.push(`Invalid Transparent mainnet address format (expected 35 Base58 characters, got ${trimmed.length}).`);
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Base58 characters in Transparent Mainnet address (Base58 excludes '0', 'O', 'I', 'l').");
     }
   }
 
@@ -141,31 +176,43 @@ export function inspectAddress(input: string, expectedNetwork: ZcashNetwork = "t
     inspection.detectedNetwork = "testnet";
     if (trimmed.length === 95 && BASE58_CHARSET_REGEX.test(trimmed)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_testnet";
       inspection.isShielded = true;
       inspection.warnings.push("Legacy Sprout address: Sprout pool is deprecated in modern Zcash workflows.");
     } else {
-      inspection.errors.push("Invalid Sprout testnet address format.");
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Sprout testnet address format (expected 95 Base58 characters starting with 'zt').");
     }
   } else if (trimmed.startsWith("zc")) {
     inspection.addressType = "sprout";
     inspection.detectedNetwork = "mainnet";
     if (trimmed.length === 95 && BASE58_CHARSET_REGEX.test(trimmed)) {
       inspection.isValidFormat = true;
+      inspection.classification = "valid_mainnet";
       inspection.isShielded = true;
       inspection.warnings.push("Legacy Sprout address: Sprout pool is deprecated in modern Zcash workflows.");
     } else {
-      inspection.errors.push("Invalid Sprout mainnet address format.");
+      inspection.classification = "invalid_structure";
+      inspection.errors.push("Invalid Sprout mainnet address format (expected 95 Base58 characters starting with 'zc').");
     }
   } else {
+    // Unsupported or unknown prefix
+    inspection.classification = "unsupported_prefix";
     inspection.errors.push("Unrecognized address prefix. Must start with u1, utest1, zs1, ztestsapling1, t1, t3, tm, or t2.");
   }
 
-  // Network compatibility check
-  if (inspection.detectedNetwork !== "unknown") {
+  // Network compatibility check:
+  // Crucially: Only evaluate networkMatch and report network mismatch if the address is a STRUCTURALLY VALID address!
+  // If the address is malformed or unsupported, it does NOT get classified as a network mismatch!
+  if (inspection.isValidFormat) {
     inspection.networkMatch = inspection.detectedNetwork === expectedNetwork;
     if (!inspection.networkMatch) {
-      inspection.errors.push(`Network mismatch: Address is formatted for ${inspection.detectedNetwork}, but expected network is ${expectedNetwork}.`);
+      inspection.errors.push(
+        `Network mismatch: Address is formatted for ${inspection.detectedNetwork}, but expected network is ${expectedNetwork}.`
+      );
     }
+  } else {
+    inspection.networkMatch = false;
   }
 
   return inspection;
@@ -192,4 +239,3 @@ export function createAddressSchema(expectedNetwork: ZcashNetwork = "testnet") {
       }
     );
 }
-

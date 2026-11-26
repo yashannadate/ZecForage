@@ -182,10 +182,29 @@ export default function PaymentRequestBuilderPage() {
               <label htmlFor="recipient-input" className="text-sm font-medium text-white">
                 Testnet Recipient Address
               </label>
-              {recipientInspection && recipientInspection.isValidFormat && recipientInspection.networkMatch && (
-                <span className="text-xs font-mono text-emerald-400">
-                  ✓ {recipientInspection.addressType} (testnet)
-                </span>
+              {recipientInspection && recipient.trim().length > 0 && (
+                <>
+                  {recipientInspection.classification === "valid_testnet" && recipientInspection.networkMatch && (
+                    <span className="text-xs font-mono text-emerald-400">
+                      ✓ {recipientInspection.addressType} (Testnet · preliminary format check)
+                    </span>
+                  )}
+                  {recipientInspection.classification === "valid_mainnet" && (
+                    <span className="text-xs font-mono text-amber-400">
+                      ⚠ Mainnet {recipientInspection.addressType} · Testnet address required
+                    </span>
+                  )}
+                  {recipientInspection.classification === "invalid_structure" && (
+                    <span className="text-xs font-mono text-rose-400">
+                      ✗ Invalid {recipientInspection.addressType !== "unknown" ? recipientInspection.addressType : ""} address structure
+                    </span>
+                  )}
+                  {recipientInspection.classification === "unsupported_prefix" && (
+                    <span className="text-xs font-mono text-rose-400">
+                      ✗ Unsupported address prefix
+                    </span>
+                  )}
+                </>
               )}
             </div>
             <textarea

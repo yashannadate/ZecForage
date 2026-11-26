@@ -52,7 +52,7 @@ ZecForage provides an isolated, **Testnet-only** browser sandbox and reference l
 | 👛 **Wallet Compatibility (`/wallets`)** | 🔵 Simulated (Zucchini Virtual) / Manual (Zodl QR) | Supports real `window.zucchini` EIP-1193 discovery plus an explicit Virtual Simulator (mock txids). Zodl iOS/Android generates Testnet QR/deep links and saves manual device verification logs locally. |
 | 🧪 **Scenario Simulator (`/scenarios`)** | 🔵 Simulated (Offline FSM) | Deterministic 8-state reconciliation engine synced with `/settings` confirmation threshold (`BigInt` zatoshi accounting). Zero blockchain node connection. |
 | 🔔 **Webhook Workbench (`/webhooks` & `/api/webhooks/*`)** | ✅ Verified (Local Loopback API) | Server-side HMAC-SHA256 signing, constant-time verification, raw body check, `300s` replay window, `5xx` bounded retries, SSRF guard, and process-local in-memory idempotency. |
-| 📊 **Integration Audit Report (`/reports`)** | ✅ Verified (Local) | Aggregates unit test baseline (`111/111`), local confirmation policy, and recorded Zodl device runs into `.md` and `.json` exports. Always marks on-chain verification `NOT_VERIFIED` and `productionReady: false`. |
+| 📊 **Integration Audit Report (`/reports`)** | ✅ Verified (Local) | Aggregates unit test baseline (`122/122`), local confirmation policy, and recorded Zodl device runs into `.md` and `.json` exports. Always marks on-chain verification `NOT_VERIFIED` and `productionReady: false`. |
 | ⚙️ **Merchant Config Hub (`/settings`)** | 🔵 Simulated / Reference Only | Stores local Testnet lightwalletd RPC endpoint references (`host:port` validated), syncs confirmation threshold (`1–50` blocks) to `/scenarios` & `/reports`, and provides Express, Next.js, and FastAPI HMAC receiver templates. |
 
 ---
@@ -113,7 +113,7 @@ ZecForage provides an isolated, **Testnet-only** browser sandbox and reference l
                ▼
 ┌──────────────────────────────────────────────────────────────────┐
 │          Compliance Audit Export (/reports → .md / .json)        │
-│          productionReady: false │ 111/111 unit test baseline     │
+│          productionReady: false │ 122/122 unit test baseline     │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -165,7 +165,7 @@ ZecForage provides an isolated, **Testnet-only** browser sandbox and reference l
 | 🔗 **Zcash SDK** | `@zucchinifi/dapp-sdk` `0.2.0` (Zucchini Wallet EIP-1193 provider) |
 | ✅ **Validation** | Zod (schema-first, with `safeParse` throughout) |
 | 📷 **QR Codes** | `qrcode` library (high-contrast PNG, 300–320px) |
-| 🧪 **Testing** | Vitest (`111` unit tests, `8` suites, `strict` TypeScript) |
+| 🧪 **Testing** | Vitest (`122` unit tests, `8` suites, `strict` TypeScript) |
 | 🔍 **Linting** | ESLint (`next/core-web-vitals`), `npx tsc --noEmit` |
 | 🔐 **Cryptography** | Node.js `crypto` (`createHmac`, `timingSafeEqual`) |
 
@@ -177,15 +177,15 @@ All protocol logic, Zcash address rules, ZIP-321 encoding, FSM transitions, and 
 
 | Test Suite | Tests | Focus |
 |---|:---:|---|
-| `test/addresses.test.ts` | 9 | Prefix, charset, whitespace, transparent/sprout warnings, network mismatch |
-| `test/zip321.test.ts` | 11 | Zatoshi `BigInt` precision, 512B base64url memos, SDK round-trip & network mismatch |
+| `test/addresses.test.ts` | 16 | Prefix, charset, whitespace, transparent/sprout warnings, network mismatch |
+| `test/zip321.test.ts` | 15 | Zatoshi `BigInt` precision, 512B base64url memos, SDK round-trip & network mismatch |
 | `test/wallet.test.ts` | 6 | Virtual Zucchini EIP-1193 provider contract, connect, requestPayment, disconnect |
 | `test/zodl.test.ts` | 8 | Zodl QR/deep-link parameter construction & manual audit record builder |
 | `test/scenarios.test.ts` | 11 | 8-state FSM, sticky exception precedence, reorg drop/recovery, reset |
 | `test/webhooks.test.ts` | 26 | HMAC-SHA256 signing, tamper detection, replay window, idempotency, retries |
 | `test/reports.test.ts` | 9 | Audit report tier classification, JSON/Markdown exports, secret exclusion |
 | `test/settings.test.ts` | 31 | Confirmation risk policy, RPC presets, Express/Next.js/FastAPI templates |
-| **Total** | **111/111** | ✅ **100% Passing** |
+| **Total** | **122/122** | ✅ **100% Passing** |
 
 ---
 
@@ -228,7 +228,7 @@ Open [http://localhost:3000](http://localhost:3000) for the landing page, or [ht
 ### 4. Verification Commands
 
 ```bash
-# Run all 111 Vitest unit tests across 8 test suites
+# Run all 122 Vitest unit tests across 8 test suites
 npm test
 
 # Lint codebase
@@ -301,7 +301,7 @@ ZecForage/
 │       └── settings/
 │           ├── store.ts                      # localStorage state with custom events
 │           └── types.ts                      # RPC presets, templates, threshold constants
-└── test/                                     # 8 Vitest test suites (111 tests)
+└── test/                                     # 8 Vitest test suites (122 tests)
     ├── addresses.test.ts
     ├── zip321.test.ts
     ├── wallet.test.ts
@@ -335,7 +335,8 @@ ZecForage was built for the **Zcash India Build on Zcash Bounty (November 2026)*
 | ✅ README with problem, features, architecture, setup | Done |
 | ✅ Honest simulation vs. verification labelling | Done — in UI, README, and audit reports |
 | ✅ Testnet-Only scope | Done — all modules locked to Zcash Testnet |
-| ✅ 111/111 unit tests passing | Done |
+| ✅ 122/122 unit tests passing | Done |
+| ✅ Application Screenshots | Done — 5 interface screenshots included |
 | ✅ Application Screenshots | Done — 5 interface screenshots included |
 | ✅ No API keys or secrets in repository | Done — `.env.example` has placeholder only |
 

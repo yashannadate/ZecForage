@@ -144,5 +144,41 @@ describe("ZIP-321 Payment Request Builder & Parser (Zucchini 0.5.2 Subset)", () 
     expect(sdkParsed.amountZatoshis).toBe("1000000");
     expect(sdkParsed.memoBase64url).toBe(encodeMemoToBase64Url("SDK Test Verification"));
   });
+
+  describe("ZIP-321 Recipient Address Validation Rules", () => {
+    it("rejects valid Mainnet address with explicit network mismatch error", () => {
+      const mainnetUnified =
+        "u1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq";
+      expect(() =>
+        buildZip321Uri({
+          recipient: mainnetUnified,
+          amount: "0.01",
+          network: "testnet",
+        })
+      ).toThrow("network mismatch");
+    });
+
+    it("rejects malformed address with structural format error, NOT network mismatch", () => {
+      const malformedSapling = "ztestsapling1qqqqqqqqqqqqqqqqqqqq"; // Length != 88
+      expect(() =>
+        buildZip321Uri({
+          recipient: malformedSapling,
+          amount: "0.01",
+          network: "testnet",
+        })
+      ).toThrow("Invalid recipient address: Invalid Sapling testnet address structure");
+    });
+
+    it("rejects unsupported non-Zcash address with unrecognized prefix error, NOT network mismatch", () => {
+      const ethAddress = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e";
+      expect(() =>
+        buildZip321Uri({
+          recipient: ethAddress,
+          amount: "0.01",
+          network: "testnet",
+        })
+      ).toThrow("Unrecognized address prefix");
+    });
+  });
 });
 
